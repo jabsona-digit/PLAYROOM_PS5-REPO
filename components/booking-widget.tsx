@@ -7,12 +7,16 @@ import { gel } from '@/lib/utils'
 import type { Database } from '@/lib/database.types'
 
 type Busy = { start: string; end: string }
+type TypeRow = { console_type: string; capacity: number; busy: Busy[] }
 export type Plan = Database['public']['Views']['public_venue_plans']['Row']
 
 const START_HOUR = 10
 const END_HOUR = 24
 const HOURS = Array.from({ length: END_HOUR - START_HOUR }, (_, i) => START_HOUR + i)
 const DURATIONS = [60, 90, 120, 180, 240]
+
+const TYPE_LABEL: Record<string, string> = { standard: 'PS5', coupe: 'კუპე', vip: 'VIP' }
+const typeLabel = (t: string) => TYPE_LABEL[t] ?? t.charAt(0).toUpperCase() + t.slice(1)
 
 function dayLabel(d: Date) {
   const days = ['კვი', 'ორშ', 'სამ', 'ოთხ', 'ხუთ', 'პარ', 'შაბ']
@@ -46,11 +50,11 @@ export function BookingWidget({
   }, [])
 
   const [selDate, setSelDate] = useState(0)
-  const [capacity, setCapacity] = useState(0)
-  const [busy, setBusy] = useState<Busy[]>([])
+  const [types, setTypes] = useState<TypeRow[]>([])
+  const [selType, setSelType] = useState<string>('standard')
   const [loading, setLoading] = useState(true)
 
-  const [pick, setPick] = useState<number | null>(null) // selected start hour
+  const [pick, setPick] = useState<number | null>(null)
   const [duration, setDuration] = useState(60)
   const [planId, setPlanId] = useState<number | null>(plans[0]?.plan_id ?? null)
   const [name, setName] = useState(defaultName)
@@ -67,9 +71,9 @@ export function BookingWidget({
       p_slug: slug,
       p_date: toISODate(dates[selDate]),
     })
-    const row = (data as unknown as { capacity: number; busy: Busy[] }[] | null)?.[0]
-    setCapacity(row?.capacity ?? 0)
-    setBusy(Array.isArray(row?.busy) ? row!.busy : [])
+    const rows = (data as unknown as TypeRow[] | null) ?? []
+    setTypes(rows)
+    setSelType((prev) => (rows.some((r) => r.console_type === prev) ? prev : rows[0]?.console_type ?? 'standard'))
     setLoading(false)
   }, [slug, selDate, dates])
 
@@ -80,13 +84,16 @@ export function BookingWidget({
     setDone(false)
   }, [loadAvailability])
 
+  const current = types.find((t) => t.console_type === selType) ?? null
+  const capacity = current?.capacity ?? 0
+  const busy = current?.busy ?? []
+
   const now = new Date()
   function cellDate(hour: number) {
     const d = new Date(dates[selDate])
     d.setHours(hour, 0, 0, 0)
     return d
   }
-  // free consoles during hour h = capacity − overlapping busy intervals
   function freeAt(h: number) {
     const cs = cellDate(h)
     const ce = new Date(cs)
@@ -121,6 +128,7 @@ export function BookingWidget({
       p_duration_min: duration,
       p_customer_name: name.trim(),
       p_customer_phone: phone.trim(),
+      p_console_type: selType,
       p_pricing_plan_id: planId ?? undefined,
       p_controllers: selectedPlan?.controllers ?? 2,
       p_payment_method: pay,
@@ -129,7 +137,7 @@ export function BookingWidget({
     if (error) {
       setError(
         /no_capacity/.test(error.message)
-          ? 'ამ დროს ყველა კონსოლი დაკავებულია — აირჩიე სხვა საათი'
+          ? `ამ დროს ყველა ${typeLabel(selType)} დაკავებულია — აირჩიე სხვა საათი`
           : /start_in_past/.test(error.message)
             ? 'არჩეული დრო უკვე გასულია'
             : 'ჯავშნა ვერ შესრულდა, სცადე თავიდან',
@@ -144,6 +152,25 @@ export function BookingWidget({
 
   return (
     <div className="nm-raised rounded-2xl p-4 sm:p-5">
+      {/* Resource-type selector (only if the venue has more than one type) */}
+      {types.length > 1 && (
+        <div className="mb-3 flex flex-wrap gap-2">
+          {types.map((t) => (
+            <button
+              key={t.console_type}
+              onClick={() => {
+                setSelType(t.console_type)
+                setPick(null)
+              }}
+              className={`rounded-xl px-4 py-2 text-sm font-semibold ${selType === t.console_type ? 'nm-glow' : 'nm-btn'}`}
+            >
+              {typeLabel(t.console_type)}{' '}
+              <span className="text-xs text-[var(--muted-foreground)]">×{t.capacity}</span>
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* Date selector */}
       <div className="flex gap-2 overflow-x-auto pb-2">
         {dates.map((d, i) => {
@@ -161,7 +188,7 @@ export function BookingWidget({
         })}
       </div>
 
-      {/* Free-slot timeline (one cell per hour, shows how many consoles are free) */}
+      {/* Free-slot timeline */}
       {loading ? (
         <div className="py-10 text-center text-sm text-[var(--muted-foreground)]">იტვირთება…</div>
       ) : capacity === 0 ? (
@@ -195,7 +222,6 @@ export function BookingWidget({
               )
             })}
           </div>
-          {/* hour scale */}
           <div className="mt-1 flex gap-1 text-[9px] text-[var(--muted-foreground)]">
             {HOURS.map((h) => (
               <div key={h} className="flex-1 text-center">
@@ -204,7 +230,7 @@ export function BookingWidget({
             ))}
           </div>
           <p className="mt-3 text-xs text-[var(--muted-foreground)]">
-            ციფრი = თავისუფალი კონსოლების რაოდენობა იმ საათში. აირჩიე დაწყების დრო.
+            ციფრი = თავისუფალი {typeLabel(selType)}-ის რაოდენობა იმ საათში. აირჩიე დაწყების დრო.
           </p>
         </div>
       )}
@@ -221,7 +247,7 @@ export function BookingWidget({
         <div className="mt-4 nm-inset space-y-4 rounded-2xl p-4 animate-in-up">
           <div className="flex items-center justify-between">
             <div className="font-semibold">
-              {toISODate(dates[selDate])} · {pick}:00 ·{' '}
+              {typeLabel(selType)} · {toISODate(dates[selDate])} · {pick}:00 ·{' '}
               <span className="text-[var(--status-free)]">{freeAt(pick)} თავისუფალი</span>
             </div>
             <button onClick={() => setPick(null)} className="text-sm text-[var(--muted-foreground)]">
@@ -229,7 +255,6 @@ export function BookingWidget({
             </button>
           </div>
 
-          {/* Duration */}
           <div>
             <div className="mb-1.5 text-sm text-[var(--muted-foreground)]">ხანგრძლივობა</div>
             <div className="flex flex-wrap gap-2">
@@ -245,7 +270,6 @@ export function BookingWidget({
             </div>
           </div>
 
-          {/* Plan */}
           {plans.length > 0 && (
             <div>
               <div className="mb-1.5 text-sm text-[var(--muted-foreground)]">ტარიფი</div>
@@ -266,13 +290,11 @@ export function BookingWidget({
             </div>
           )}
 
-          {/* Contact */}
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
             <input value={name} onChange={(e) => setName(e.target.value)} placeholder="სახელი და გვარი" className="nm-raised-sm rounded-xl px-3 py-2 text-sm outline-none" />
             <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="ტელეფონი" type="tel" className="nm-raised-sm rounded-xl px-3 py-2 text-sm outline-none" />
           </div>
 
-          {/* Payment */}
           <div>
             <div className="mb-1.5 text-sm text-[var(--muted-foreground)]">გადახდა</div>
             <div className="flex gap-2">
@@ -282,7 +304,6 @@ export function BookingWidget({
             </div>
           </div>
 
-          {/* Total + submit */}
           <div className="flex items-center justify-between pt-1">
             <div className="text-sm">
               <span className="text-[var(--muted-foreground)]">ჯამი: </span>
