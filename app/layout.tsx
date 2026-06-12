@@ -1,6 +1,8 @@
 import type { Metadata } from 'next'
 import { Noto_Sans_Georgian } from 'next/font/google'
 import Link from 'next/link'
+import { getUser } from '@/lib/auth'
+import { SignOutButton } from '@/components/sign-out-button'
 import './globals.css'
 
 const notoGeorgian = Noto_Sans_Georgian({
@@ -19,9 +21,11 @@ export const metadata: Metadata = {
   metadataBase: new URL('https://martelounge.ge'),
 }
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
+  const user = await getUser()
+
   return (
     <html lang="ka" className={`${notoGeorgian.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col">
@@ -37,12 +41,24 @@ export default function RootLayout({
               >
                 კლუბები
               </Link>
-              <Link
-                href="/account"
-                className="nm-btn px-4 py-2 rounded-xl text-sm font-medium"
-              >
-                ჩემი ჯავშნები
-              </Link>
+              {user ? (
+                <>
+                  <Link
+                    href="/account"
+                    className="nm-btn px-4 py-2 rounded-xl text-sm font-medium"
+                  >
+                    ჩემი ჯავშნები
+                  </Link>
+                  <SignOutButton />
+                </>
+              ) : (
+                <Link
+                  href="/auth/login"
+                  className="nm-btn px-4 py-2 rounded-xl text-sm font-medium"
+                >
+                  შესვლა
+                </Link>
+              )}
             </nav>
           </div>
         </header>

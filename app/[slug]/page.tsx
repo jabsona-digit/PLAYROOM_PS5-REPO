@@ -1,7 +1,8 @@
 import { notFound } from 'next/navigation'
 import { Star, MapPin, Phone, Check } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
-import { AvailabilityViewer } from '@/components/availability-viewer'
+import { getUser } from '@/lib/auth'
+import { BookingWidget, type Plan } from '@/components/booking-widget'
 import { gel } from '@/lib/utils'
 import type { Database } from '@/lib/database.types'
 
@@ -47,13 +48,18 @@ export default async function VenuePage({
   if (!venue) notFound()
 
   const supabase = await createClient()
-  const { data: reviewsRaw } = await supabase
-    .from('public_reviews')
-    .select('*')
-    .eq('venue_id', venue.id!)
-    .order('created_at', { ascending: false })
-    .limit(20)
+  const [{ data: reviewsRaw }, { data: plansRaw }, user] = await Promise.all([
+    supabase
+      .from('public_reviews')
+      .select('*')
+      .eq('venue_id', venue.id!)
+      .order('created_at', { ascending: false })
+      .limit(20),
+    supabase.from('public_venue_plans').select('*').eq('venue_slug', decoded),
+    getUser(),
+  ])
   const reviews = (reviewsRaw ?? []) as PublicReview[]
+  const plans = (plansRaw ?? []) as Plan[]
 
   const amenities = Array.isArray(venue.amenities) ? (venue.amenities as string[]) : []
 
@@ -140,12 +146,18 @@ export default async function VenuePage({
         </div>
       )}
 
-      {/* Availability */}
+      {/* Availability + booking */}
       <section className="mt-8">
-        <h2 className="text-xl font-bold mb-3">ხელმისაწვდომობა</h2>
-        <AvailabilityViewer slug={decoded} />
+        <h2 className="text-xl font-bold mb-3">დაჯავშნა</h2>
+        <BookingWidget
+          slug={decoded}
+          plans={plans}
+          isAuthed={!!user}
+          defaultName={(user?.user_metadata?.full_name as string) ?? ''}
+          defaultPhone={(user?.user_metadata?.phone as string) ?? ''}
+        />
         <p className="mt-3 text-xs text-[var(--muted-foreground)]">
-          ჯავშნისთვის აირჩიე თარიღი და თავისუფალი დრო. (ჯავშნის ფორმა მალე ჩაირთვება)
+          აირჩიე თარიღი და თავისუფალი დრო, შემდეგ შეავსე ჯავშნის დეტალები.
         </p>
       </section>
 
