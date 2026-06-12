@@ -1,65 +1,78 @@
-import Image from "next/image";
+import Link from 'next/link'
+import { Gamepad2, Clock, ShieldCheck } from 'lucide-react'
+import { createClient } from '@/lib/supabase/server'
+import { VenueCard, type PublicVenue } from '@/components/venue-card'
 
-export default function Home() {
+// Always render fresh listings (availability/ratings change often).
+export const dynamic = 'force-dynamic'
+
+export default async function Home() {
+  const supabase = await createClient()
+  const { data: venues } = await supabase
+    .from('public_venues')
+    .select('*')
+    .order('avg_rating', { ascending: false })
+    .limit(12)
+
+  const list = (venues ?? []) as PublicVenue[]
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+    <div className="mx-auto max-w-6xl px-4">
+      {/* Hero */}
+      <section className="py-14 sm:py-20 text-center animate-in-up">
+        <h1 className="text-4xl sm:text-6xl font-extrabold tracking-tight">
+          ითამაშე <span className="text-[var(--primary)] text-glow">PlayStation</span>
+          <br className="hidden sm:block" /> შენს ქალაქში
+        </h1>
+        <p className="mt-5 max-w-xl mx-auto text-[var(--muted-foreground)] text-lg">
+          იპოვე ახლომდებარე კლუბი, ნახე ცოცხალი ხელმისაწვდომობა და დაჯავშნე
+          კონსოლი წამებში.
+        </p>
+        <div className="mt-8 flex items-center justify-center gap-3">
+          <Link
+            href="/venues"
+            className="nm-glow rounded-xl px-6 py-3 font-semibold"
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+            ნახე კლუბები
+          </Link>
         </div>
-      </main>
+
+        <div className="mt-12 grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-3xl mx-auto">
+          {[
+            { icon: Gamepad2, t: 'PS5 კონსოლები', d: 'ახალი თამაშები, საუკეთესო კლუბები' },
+            { icon: Clock, t: 'ცოცხალი ჯავშანი', d: 'ნახე რომელი კონსოლია თავისუფალი' },
+            { icon: ShieldCheck, t: 'მარტივი გადახდა', d: 'გადარიცხვა ან ბარათით' },
+          ].map(({ icon: Icon, t, d }) => (
+            <div key={t} className="nm-raised-sm rounded-2xl p-5 text-left">
+              <Icon className="size-6 text-[var(--primary)]" />
+              <h3 className="mt-3 font-semibold">{t}</h3>
+              <p className="text-sm text-[var(--muted-foreground)]">{d}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Listings */}
+      <section className="pb-8">
+        <div className="flex items-end justify-between mb-5">
+          <h2 className="text-2xl font-bold">პოპულარული კლუბები</h2>
+          <Link href="/venues" className="text-sm text-[var(--primary)]">
+            ყველა →
+          </Link>
+        </div>
+
+        {list.length === 0 ? (
+          <div className="nm-inset rounded-2xl p-10 text-center text-[var(--muted-foreground)]">
+            ჯერ გამოქვეყნებული კლუბი არ არის. მალე დაემატება! 🎮
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            {list.map((v) => (
+              <VenueCard key={v.id} venue={v} />
+            ))}
+          </div>
+        )}
+      </section>
     </div>
-  );
+  )
 }

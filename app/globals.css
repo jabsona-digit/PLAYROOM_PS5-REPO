@@ -1,26 +1,121 @@
-@import "tailwindcss";
-
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+@import 'tailwindcss';
 
 @theme inline {
+  --font-sans: var(--font-noto-georgian), ui-sans-serif, system-ui, sans-serif;
+
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-card: var(--card);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-border: var(--border);
+  --color-ring: var(--ring);
+
+  --color-status-free: var(--status-free);
+  --color-status-busy: var(--status-busy);
+
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+:root {
+  /* dark neumorphic palette — matches the Martelounge admin panel */
+  --background: oklch(0.21 0.006 270);
+  --foreground: oklch(0.96 0.005 260);
+  --surface: oklch(0.235 0.006 270);
+  --surface-2: oklch(0.27 0.007 270);
+  --card: oklch(0.235 0.006 270);
+
+  /* PlayStation-leaning teal/cyan accent */
+  --primary: oklch(0.78 0.13 195);
+  --primary-foreground: oklch(0.2 0.02 250);
+  --muted: oklch(0.3 0.007 270);
+  --muted-foreground: oklch(0.66 0.01 270);
+  --accent: oklch(0.78 0.13 195);
+
+  --border: oklch(1 0 0 / 7%);
+  --ring: oklch(0.78 0.13 195);
+
+  --status-free: oklch(0.74 0.16 155);
+  --status-busy: oklch(0.64 0.21 25);
+
+  --radius: 0.9rem;
+
+  --nm-dark: oklch(0.16 0.006 270);
+  --nm-light: oklch(0.29 0.008 270);
+}
+
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+  html {
+    background-color: var(--background);
+    color-scheme: dark;
+  }
+  body {
+    color: var(--foreground);
+    background-color: var(--background);
+    font-family: var(--font-sans);
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* Raised neumorphic surface */
+@utility nm-raised {
+  background: linear-gradient(145deg, var(--surface-2), var(--surface));
+  box-shadow: 6px 6px 14px var(--nm-dark), -6px -6px 14px var(--nm-light);
+}
+@utility nm-raised-sm {
+  background: linear-gradient(145deg, var(--surface-2), var(--surface));
+  box-shadow: 4px 4px 9px var(--nm-dark), -4px -4px 9px var(--nm-light);
+}
+/* Pressed / inset */
+@utility nm-inset {
+  background: var(--surface);
+  box-shadow: inset 4px 4px 9px var(--nm-dark), inset -4px -4px 9px var(--nm-light);
+}
+/* Interactive button */
+@utility nm-btn {
+  background: linear-gradient(145deg, var(--surface-2), var(--surface));
+  box-shadow: 5px 5px 12px var(--nm-dark), -5px -5px 12px var(--nm-light);
+  transition: box-shadow 0.25s ease, transform 0.25s ease;
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 7px 9px 18px var(--nm-dark), -6px -6px 16px var(--nm-light);
+  }
+  &:active {
+    transform: translateY(0);
+    box-shadow: inset 4px 4px 9px var(--nm-dark), inset -4px -4px 9px var(--nm-light);
+  }
+  &:disabled {
+    opacity: 0.5;
+    pointer-events: none;
+  }
+}
+/* Glowing accent (primary CTA / active state) */
+@utility nm-glow {
+  background: linear-gradient(145deg, var(--surface-2), var(--surface));
+  box-shadow: 5px 5px 12px var(--nm-dark), -5px -5px 12px var(--nm-light),
+    0 0 0 1px color-mix(in oklch, var(--primary) 50%, transparent),
+    0 0 22px 2px color-mix(in oklch, var(--primary) 38%, transparent);
+}
+@utility text-glow {
+  text-shadow: 0 0 14px color-mix(in oklch, var(--primary) 60%, transparent);
+}
+
+@keyframes slide-in-up {
+  from { opacity: 0; transform: translateY(18px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@utility animate-in-up {
+  animation: slide-in-up 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
