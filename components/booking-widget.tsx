@@ -7,7 +7,6 @@ import { gel } from '@/lib/utils'
 import type { Database } from '@/lib/database.types'
 
 type Busy = { start: string; end: string }
-type Row = { console_id: number; console_name: string; slot_number: number; busy: Busy[] }
 export type Plan = Database['public']['Views']['public_venue_plans']['Row']
 
 const START_HOUR = 10
@@ -47,10 +46,11 @@ export function BookingWidget({
   }, [])
 
   const [selDate, setSelDate] = useState(0)
-  const [rows, setRows] = useState<Row[]>([])
+  const [capacity, setCapacity] = useState(0)
+  const [busy, setBusy] = useState<Busy[]>([])
   const [loading, setLoading] = useState(true)
 
-  const [pick, setPick] = useState<{ consoleId: number; consoleName: string; hour: number } | null>(null)
+  const [pick, setPick] = useState<number | null>(null) // selected start hour
   const [duration, setDuration] = useState(60)
   const [planId, setPlanId] = useState<number | null>(plans[0]?.plan_id ?? null)
   const [name, setName] = useState(defaultName)
@@ -67,7 +67,9 @@ export function BookingWidget({
       p_slug: slug,
       p_date: toISODate(dates[selDate]),
     })
-    setRows(((data ?? []) as Row[]).sort((a, b) => a.slot_number - b.slot_number))
+    const row = (data as unknown as { capacity: number; busy: Busy[] }[] | null)?.[0]
+    setCapacity(row?.capacity ?? 0)
+    setBusy(Array.isArray(row?.busy) ? row!.busy : [])
     setLoading(false)
   }, [slug, selDate, dates])
 
@@ -84,11 +86,13 @@ export function BookingWidget({
     d.setHours(hour, 0, 0, 0)
     return d
   }
-  function isBusy(busy: Busy[], h: number) {
+  // free consoles during hour h = capacity − overlapping busy intervals
+  function freeAt(h: number) {
     const cs = cellDate(h)
     const ce = new Date(cs)
     ce.setHours(h + 1)
-    return busy.some((b) => new Date(b.start) < ce && new Date(b.end) > cs)
+    const used = busy.filter((b) => new Date(b.start) < ce && new Date(b.end) > cs).length
+    return Math.max(0, capacity - used)
   }
   function isPast(h: number) {
     return cellDate(h) <= now
@@ -98,7 +102,7 @@ export function BookingWidget({
   const total = selectedPlan ? Number(selectedPlan.price_per_hour) * (duration / 60) : 0
 
   async function submit() {
-    if (!pick) return
+    if (pick == null) return
     if (!isAuthed) {
       router.push(`/auth/login?next=/${encodeURIComponent(slug)}`)
       return
@@ -110,14 +114,13 @@ export function BookingWidget({
     setSubmitting(true)
     setError(null)
     const supabase = createClient()
-    const start = cellDate(pick.hour)
+    const start = cellDate(pick)
     const { error } = await supabase.rpc('create_marketplace_booking', {
       p_slug: slug,
       p_start: start.toISOString(),
       p_duration_min: duration,
       p_customer_name: name.trim(),
       p_customer_phone: phone.trim(),
-      p_console_id: pick.consoleId,
       p_pricing_plan_id: planId ?? undefined,
       p_controllers: selectedPlan?.controllers ?? 2,
       p_payment_method: pay,
@@ -125,8 +128,8 @@ export function BookingWidget({
     setSubmitting(false)
     if (error) {
       setError(
-        /booking_conflict/.test(error.message)
-          ? 'ეს დრო უკვე დაკავებულია, აირჩიე სხვა'
+        /no_capacity/.test(error.message)
+          ? 'ამ დროს ყველა კონსოლი დაკავებულია — აირჩიე სხვა საათი'
           : /start_in_past/.test(error.message)
             ? 'არჩეული დრო უკვე გასულია'
             : 'ჯავშნა ვერ შესრულდა, სცადე თავიდან',
@@ -158,79 +161,77 @@ export function BookingWidget({
         })}
       </div>
 
-      {/* Hour scale */}
-      <div className="mt-4 flex items-center gap-1 pl-[88px] text-[10px] text-[var(--muted-foreground)]">
-        {HOURS.filter((h) => h % 2 === 0).map((h) => (
-          <div key={h} className="flex-1 text-left">{h}:00</div>
-        ))}
-      </div>
-
-      {/* Console rows */}
+      {/* Free-slot timeline (one cell per hour, shows how many consoles are free) */}
       {loading ? (
-        <div className="py-10 text-center text-[var(--muted-foreground)] text-sm">იტვირთება…</div>
-      ) : rows.length === 0 ? (
-        <div className="py-10 text-center text-[var(--muted-foreground)] text-sm">კონსოლები არ მოიძებნა.</div>
+        <div className="py-10 text-center text-sm text-[var(--muted-foreground)]">იტვირთება…</div>
+      ) : capacity === 0 ? (
+        <div className="py-10 text-center text-sm text-[var(--muted-foreground)]">კონსოლები არ მოიძებნა.</div>
       ) : (
-        <div className="mt-1 space-y-1.5">
-          {rows.map((r) => (
-            <div key={r.console_id} className="flex items-center gap-2">
-              <div className="w-20 shrink-0 text-sm font-medium truncate">{r.console_name}</div>
-              <div className="flex flex-1 gap-0.5">
-                {HOURS.map((h) => {
-                  const busy = isBusy(r.busy, h)
-                  const past = isPast(h)
-                  const picked = pick?.consoleId === r.console_id && pick?.hour === h
-                  const disabled = busy || past
-                  return (
-                    <button
-                      key={h}
-                      disabled={disabled}
-                      onClick={() => setPick({ consoleId: r.console_id, consoleName: r.console_name, hour: h })}
-                      title={`${h}:00`}
-                      className={`h-7 flex-1 rounded-[5px] transition-colors ${
-                        picked
-                          ? 'bg-[var(--primary)] ring-2 ring-[var(--primary)]'
-                          : busy
-                            ? 'bg-[var(--status-busy)]/70 cursor-not-allowed'
-                            : past
-                              ? 'bg-[var(--surface)] opacity-40 cursor-not-allowed'
-                              : 'bg-[var(--status-free)]/25 hover:bg-[var(--status-free)]/50'
-                      }`}
-                    />
-                  )
-                })}
+        <div className="mt-4">
+          <div className="flex gap-1">
+            {HOURS.map((h) => {
+              const free = freeAt(h)
+              const past = isPast(h)
+              const disabled = past || free === 0
+              const picked = pick === h
+              return (
+                <button
+                  key={h}
+                  disabled={disabled}
+                  onClick={() => setPick(h)}
+                  title={`${h}:00 — ${free} თავისუფალი`}
+                  className={`flex h-12 flex-1 flex-col items-center justify-center rounded-md text-xs transition-colors ${
+                    picked
+                      ? 'bg-[var(--primary)] text-[var(--primary-foreground)] ring-2 ring-[var(--primary)]'
+                      : past
+                        ? 'bg-[var(--surface)] opacity-30'
+                        : free === 0
+                          ? 'bg-[var(--status-busy)]/60'
+                          : 'bg-[var(--status-free)]/20 hover:bg-[var(--status-free)]/40'
+                  }`}
+                >
+                  <span className="font-bold leading-none">{past ? '·' : free}</span>
+                </button>
+              )
+            })}
+          </div>
+          {/* hour scale */}
+          <div className="mt-1 flex gap-1 text-[9px] text-[var(--muted-foreground)]">
+            {HOURS.map((h) => (
+              <div key={h} className="flex-1 text-center">
+                {h % 2 === 0 ? h : ''}
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
+          <p className="mt-3 text-xs text-[var(--muted-foreground)]">
+            ციფრი = თავისუფალი კონსოლების რაოდენობა იმ საათში. აირჩიე დაწყების დრო.
+          </p>
         </div>
       )}
 
-      {/* Legend */}
-      <div className="mt-4 flex items-center gap-4 text-xs text-[var(--muted-foreground)]">
-        <span className="flex items-center gap-1.5"><span className="size-3 rounded bg-[var(--status-free)]/40" /> თავისუფალი</span>
-        <span className="flex items-center gap-1.5"><span className="size-3 rounded bg-[var(--status-busy)]/70" /> დაკავებული</span>
-      </div>
-
       {done && (
-        <div className="mt-4 nm-inset rounded-xl p-4 text-center text-[var(--status-free)] text-sm">
+        <div className="mt-4 nm-inset rounded-xl p-4 text-center text-sm text-[var(--status-free)]">
           ✅ ჯავშნა მიღებულია! კლუბი დაგიკავშირდება დასადასტურებლად. იხილე{' '}
           <a href="/account" className="underline">ჩემი ჯავშნები</a>.
         </div>
       )}
 
       {/* Booking form */}
-      {pick && !done && (
-        <div className="mt-4 nm-inset rounded-2xl p-4 space-y-4 animate-in-up">
+      {pick != null && !done && (
+        <div className="mt-4 nm-inset space-y-4 rounded-2xl p-4 animate-in-up">
           <div className="flex items-center justify-between">
             <div className="font-semibold">
-              {pick.consoleName} · {toISODate(dates[selDate])} · {pick.hour}:00
+              {toISODate(dates[selDate])} · {pick}:00 ·{' '}
+              <span className="text-[var(--status-free)]">{freeAt(pick)} თავისუფალი</span>
             </div>
-            <button onClick={() => setPick(null)} className="text-sm text-[var(--muted-foreground)]">გაუქმება</button>
+            <button onClick={() => setPick(null)} className="text-sm text-[var(--muted-foreground)]">
+              გაუქმება
+            </button>
           </div>
 
           {/* Duration */}
           <div>
-            <div className="text-sm text-[var(--muted-foreground)] mb-1.5">ხანგრძლივობა</div>
+            <div className="mb-1.5 text-sm text-[var(--muted-foreground)]">ხანგრძლივობა</div>
             <div className="flex flex-wrap gap-2">
               {DURATIONS.map((d) => (
                 <button
@@ -247,13 +248,13 @@ export function BookingWidget({
           {/* Plan */}
           {plans.length > 0 && (
             <div>
-              <div className="text-sm text-[var(--muted-foreground)] mb-1.5">ტარიფი</div>
+              <div className="mb-1.5 text-sm text-[var(--muted-foreground)]">ტარიფი</div>
               <div className="flex flex-wrap gap-2">
                 {plans.map((p) => (
                   <button
                     key={p.plan_id}
                     onClick={() => setPlanId(p.plan_id)}
-                    className={`rounded-lg px-3 py-1.5 text-sm text-left ${planId === p.plan_id ? 'nm-glow' : 'nm-btn'}`}
+                    className={`rounded-lg px-3 py-1.5 text-left text-sm ${planId === p.plan_id ? 'nm-glow' : 'nm-btn'}`}
                   >
                     <div className="font-medium">{p.name}</div>
                     <div className="text-xs text-[var(--muted-foreground)]">
@@ -266,35 +267,18 @@ export function BookingWidget({
           )}
 
           {/* Contact */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            <input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="სახელი და გვარი"
-              className="nm-raised-sm rounded-xl px-3 py-2 text-sm outline-none"
-            />
-            <input
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              placeholder="ტელეფონი"
-              type="tel"
-              className="nm-raised-sm rounded-xl px-3 py-2 text-sm outline-none"
-            />
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="სახელი და გვარი" className="nm-raised-sm rounded-xl px-3 py-2 text-sm outline-none" />
+            <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="ტელეფონი" type="tel" className="nm-raised-sm rounded-xl px-3 py-2 text-sm outline-none" />
           </div>
 
           {/* Payment */}
           <div>
-            <div className="text-sm text-[var(--muted-foreground)] mb-1.5">გადახდა</div>
+            <div className="mb-1.5 text-sm text-[var(--muted-foreground)]">გადახდა</div>
             <div className="flex gap-2">
-              <button onClick={() => setPay('transfer')} className={`rounded-lg px-3 py-1.5 text-sm ${pay === 'transfer' ? 'nm-glow' : 'nm-btn'}`}>
-                გადარიცხვა
-              </button>
-              <button onClick={() => setPay('cash_on_arrival')} className={`rounded-lg px-3 py-1.5 text-sm ${pay === 'cash_on_arrival' ? 'nm-glow' : 'nm-btn'}`}>
-                ადგილზე
-              </button>
-              <button disabled title="მალე" className="rounded-lg px-3 py-1.5 text-sm nm-btn opacity-40 cursor-not-allowed">
-                ბარათით (მალე)
-              </button>
+              <button onClick={() => setPay('transfer')} className={`rounded-lg px-3 py-1.5 text-sm ${pay === 'transfer' ? 'nm-glow' : 'nm-btn'}`}>გადარიცხვა</button>
+              <button onClick={() => setPay('cash_on_arrival')} className={`rounded-lg px-3 py-1.5 text-sm ${pay === 'cash_on_arrival' ? 'nm-glow' : 'nm-btn'}`}>ადგილზე</button>
+              <button disabled title="მალე" className="nm-btn cursor-not-allowed rounded-lg px-3 py-1.5 text-sm opacity-40">ბარათით (მალე)</button>
             </div>
           </div>
 
@@ -304,16 +288,12 @@ export function BookingWidget({
               <span className="text-[var(--muted-foreground)]">ჯამი: </span>
               <span className="text-lg font-bold text-[var(--primary)]">{gel(total)}</span>
             </div>
-            <button
-              onClick={submit}
-              disabled={submitting}
-              className="nm-glow rounded-xl px-6 py-2.5 font-semibold"
-            >
+            <button onClick={submit} disabled={submitting} className="nm-glow rounded-xl px-6 py-2.5 font-semibold">
               {submitting ? '...' : isAuthed ? 'დაჯავშნა' : 'შესვლა და დაჯავშნა'}
             </button>
           </div>
 
-          {error && <p className="text-sm text-[var(--status-busy)] text-center">{error}</p>}
+          {error && <p className="text-center text-sm text-[var(--status-busy)]">{error}</p>}
         </div>
       )}
     </div>
