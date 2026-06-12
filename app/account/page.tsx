@@ -3,6 +3,7 @@ import { Calendar, Clock } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { getUser } from '@/lib/auth'
 import { gel } from '@/lib/utils'
+import { BookingReview } from '@/components/booking-review'
 import type { Database } from '@/lib/database.types'
 
 export const dynamic = 'force-dynamic'
@@ -73,6 +74,16 @@ export default async function AccountPage() {
     }
   }
 
+  // existing reviews (to prefill / mark already-reviewed bookings)
+  const { data: myReviews } = await supabase
+    .from('marketplace_reviews')
+    .select('booking_id, rating, comment')
+    .eq('customer_id', user.id)
+  const reviewMap = new Map<string, { rating: number; comment: string | null }>()
+  for (const r of myReviews ?? []) {
+    if (r.booking_id) reviewMap.set(r.booking_id, { rating: r.rating, comment: r.comment })
+  }
+
   return (
     <div className="mx-auto max-w-2xl px-4 py-10">
       <h1 className="text-2xl font-bold mb-6">ჩემი ჯავშნები</h1>
@@ -120,6 +131,15 @@ export default async function AccountPage() {
                     </div>
                   </div>
                 </div>
+
+                {b.status === 'completed' && (
+                  <BookingReview
+                    bookingId={b.id}
+                    initialRating={reviewMap.get(b.id)?.rating}
+                    initialComment={reviewMap.get(b.id)?.comment ?? undefined}
+                    reviewed={reviewMap.has(b.id)}
+                  />
+                )}
               </div>
             )
           })}
