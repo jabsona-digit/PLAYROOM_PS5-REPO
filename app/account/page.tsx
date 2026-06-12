@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getUser } from '@/lib/auth'
 import { gel } from '@/lib/utils'
 import { BookingReview } from '@/components/booking-review'
+import { BookingPass } from '@/components/booking-pass'
 import type { Database } from '@/lib/database.types'
 
 export const dynamic = 'force-dynamic'
@@ -132,6 +133,9 @@ export default async function AccountPage() {
                   </div>
                 </div>
 
+                {(b.status === 'pending' || b.status === 'confirmed') && (
+                  <BookingPass bookingId={b.id} />
+                )}
                 {b.status === 'completed' && (
                   <BookingReview
                     bookingId={b.id}
