@@ -18,7 +18,18 @@ export const metadata: Metadata = {
   },
   description:
     'იპოვე და დაჯავშნე PlayStation 5 კონსოლი შენს ქალაქში — ცოცხალი ხელმისაწვდომობა, მარტივი ჯავშანი Martelounge-ზე.',
-  metadataBase: new URL('https://martelounge.ge'),
+  metadataBase: new URL('https://play.martelounge.ge'),
+  alternates: { canonical: '/' },
+  openGraph: {
+    type: 'website',
+    siteName: 'Martelounge',
+    locale: 'ka_GE',
+    url: 'https://play.martelounge.ge',
+    title: 'Martelounge — PlayStation კლუბები საქართველოში',
+    description:
+      'იპოვე და დაჯავშნე PlayStation 5 კონსოლი შენს ქალაქში — ცოცხალი ხელმისაწვდომობა, მარტივი ჯავშანი.',
+  },
+  twitter: { card: 'summary_large_image' },
 }
 
 export default async function RootLayout({

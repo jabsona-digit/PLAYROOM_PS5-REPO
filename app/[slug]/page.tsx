@@ -28,12 +28,22 @@ export async function generateMetadata({
 }) {
   const { slug } = await params
   const venue = await getVenue(decodeURIComponent(slug))
-  if (!venue) return { title: 'კლუბი ვერ მოიძებნა' }
+  if (!venue) return { title: 'კლუბი ვერ მოიძებნა', robots: { index: false, follow: false } }
+  const description =
+    venue.description ??
+    `დაჯავშნე PlayStation კონსოლი — ${venue.name}${venue.city ? `, ${venue.city}` : ''}.`
+  const canonical = `/${slug}`
   return {
     title: venue.name ?? 'კლუბი',
-    description:
-      venue.description ??
-      `დაჯავშნე PlayStation კონსოლი — ${venue.name}${venue.city ? `, ${venue.city}` : ''}.`,
+    description,
+    alternates: { canonical },
+    openGraph: {
+      type: 'website',
+      url: canonical,
+      title: venue.name ?? 'კლუბი',
+      description,
+      images: venue.cover_image_url ? [{ url: venue.cover_image_url }] : undefined,
+    },
   }
 }
 

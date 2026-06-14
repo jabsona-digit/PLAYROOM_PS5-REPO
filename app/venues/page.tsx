@@ -1,10 +1,25 @@
+import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
 import { VenueCard, type PublicVenue } from '@/components/venue-card'
 import { Search } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
 
-export const metadata = { title: 'კლუბები' }
+// Search-result URLs (?q=…) must NOT be indexed — they're crawl-amplification
+// bait. The canonical listing is always /venues.
+export async function generateMetadata({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string }>
+}): Promise<Metadata> {
+  const { q } = await searchParams
+  const term = (q ?? '').trim()
+  return {
+    title: term ? `ძებნა: ${term}` : 'კლუბები',
+    alternates: { canonical: '/venues' },
+    robots: term ? { index: false, follow: true } : undefined,
+  }
+}
 
 export default async function VenuesPage({
   searchParams,
