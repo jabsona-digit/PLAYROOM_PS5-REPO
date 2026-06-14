@@ -1,5 +1,5 @@
 import type { MetadataRoute } from 'next'
-import { createClient } from '@/lib/supabase/server'
+import { createPublicClient } from '@/lib/supabase/public'
 
 const BASE = 'https://play.martelounge.ge'
 
@@ -12,7 +12,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date()
   let venues: { slug: string | null }[] = []
   try {
-    const supabase = await createClient()
+    const supabase = createPublicClient()
     const { data } = await supabase.from('public_venues').select('slug').limit(2000)
     venues = data ?? []
   } catch {

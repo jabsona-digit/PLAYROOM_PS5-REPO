@@ -1,18 +1,34 @@
 import { notFound } from 'next/navigation'
 import { Star, MapPin, Phone, Check } from 'lucide-react'
-import { createClient } from '@/lib/supabase/server'
-import { getUser } from '@/lib/auth'
+import { createPublicClient } from '@/lib/supabase/public'
 import { BookingWidget, type Plan } from '@/components/booking-widget'
 import { gel } from '@/lib/utils'
 import type { Database } from '@/lib/database.types'
 
-export const dynamic = 'force-dynamic'
+// ISR: cache the venue profile for 1h (profile/reviews change slowly). Live
+// availability is fetched client-side by BookingWidget, so caching the shell is
+// safe. Public reads only (no cookies) → CDN-cacheable, shields Supabase.
+export const revalidate = 3600
 
 type PublicVenue = Database['public']['Views']['public_venues']['Row']
 type PublicReview = Database['public']['Views']['public_reviews']['Row']
 
+// Prerender every published venue at build → they become ISR-cached pages
+// (new venues not yet built still render on-demand and then cache).
+export async function generateStaticParams() {
+  try {
+    const supabase = createPublicClient()
+    const { data } = await supabase.from('public_venues').select('slug').limit(500)
+    return (data ?? [])
+      .filter((v) => v.slug)
+      .map((v) => ({ slug: v.slug as string }))
+  } catch {
+    return []
+  }
+}
+
 async function getVenue(slug: string) {
-  const supabase = await createClient()
+  const supabase = createPublicClient()
   const { data } = await supabase
     .from('public_venues')
     .select('*')
@@ -57,8 +73,8 @@ export default async function VenuePage({
   const venue = await getVenue(decoded)
   if (!venue) notFound()
 
-  const supabase = await createClient()
-  const [{ data: reviewsRaw }, { data: plansRaw }, user] = await Promise.all([
+  const supabase = createPublicClient()
+  const [{ data: reviewsRaw }, { data: plansRaw }] = await Promise.all([
     supabase
       .from('public_reviews')
       .select('*')
@@ -66,7 +82,6 @@ export default async function VenuePage({
       .order('created_at', { ascending: false })
       .limit(20),
     supabase.from('public_venue_plans').select('*').eq('venue_slug', decoded),
-    getUser(),
   ])
   const reviews = (reviewsRaw ?? []) as PublicReview[]
   const plans = (plansRaw ?? []) as Plan[]
@@ -159,13 +174,7 @@ export default async function VenuePage({
       {/* Availability + booking */}
       <section className="mt-8">
         <h2 className="text-xl font-bold mb-3">დაჯავშნა</h2>
-        <BookingWidget
-          slug={decoded}
-          plans={plans}
-          isAuthed={!!user}
-          defaultName={(user?.user_metadata?.full_name as string) ?? ''}
-          defaultPhone={(user?.user_metadata?.phone as string) ?? ''}
-        />
+        <BookingWidget slug={decoded} plans={plans} />
         <p className="mt-3 text-xs text-[var(--muted-foreground)]">
           აირჩიე თარიღი და თავისუფალი დრო, შემდეგ შეავსე ჯავშნის დეტალები.
         </p>

@@ -1,13 +1,14 @@
 import Link from 'next/link'
 import { Gamepad2, Clock, ShieldCheck } from 'lucide-react'
-import { createClient } from '@/lib/supabase/server'
+import { createPublicClient } from '@/lib/supabase/public'
 import { VenueCard, type PublicVenue } from '@/components/venue-card'
 
-// Always render fresh listings (availability/ratings change often).
-export const dynamic = 'force-dynamic'
+// ISR: cache the listing for 30 min (ratings/new venues change slowly) so bots &
+// repeat visits serve from the CDN, not Supabase. Public reads only (no cookies).
+export const revalidate = 1800
 
 export default async function Home() {
-  const supabase = await createClient()
+  const supabase = createPublicClient()
   const { data: venues } = await supabase
     .from('public_venues')
     .select('*')

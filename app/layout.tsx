@@ -1,8 +1,7 @@
 import type { Metadata } from 'next'
 import { Noto_Sans_Georgian } from 'next/font/google'
 import Link from 'next/link'
-import { getUser } from '@/lib/auth'
-import { SignOutButton } from '@/components/sign-out-button'
+import { HeaderAuth } from '@/components/header-auth'
 import './globals.css'
 
 const notoGeorgian = Noto_Sans_Georgian({
@@ -33,11 +32,9 @@ export const metadata: Metadata = {
   verification: { google: 'Z7s8o7LVOARJUvdVEK4dvDKQKoeIovggssg17u_GbMo' },
 }
 
-export default async function RootLayout({
+export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
-  const user = await getUser()
-
   return (
     <html lang="ka" className={`${notoGeorgian.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col">
@@ -53,24 +50,7 @@ export default async function RootLayout({
               >
                 კლუბები
               </Link>
-              {user ? (
-                <>
-                  <Link
-                    href="/account"
-                    className="nm-btn px-4 py-2 rounded-xl text-sm font-medium"
-                  >
-                    ჩემი ჯავშნები
-                  </Link>
-                  <SignOutButton />
-                </>
-              ) : (
-                <Link
-                  href="/auth/login"
-                  className="nm-btn px-4 py-2 rounded-xl text-sm font-medium"
-                >
-                  შესვლა
-                </Link>
-              )}
+              <HeaderAuth />
             </nav>
           </div>
         </header>

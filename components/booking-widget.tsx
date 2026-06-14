@@ -29,15 +29,9 @@ function toISODate(d: Date) {
 export function BookingWidget({
   slug,
   plans,
-  isAuthed,
-  defaultName,
-  defaultPhone,
 }: {
   slug: string
   plans: Plan[]
-  isAuthed: boolean
-  defaultName: string
-  defaultPhone: string
 }) {
   const router = useRouter()
   const dates = useMemo(() => {
@@ -57,8 +51,9 @@ export function BookingWidget({
   const [pick, setPick] = useState<number | null>(null)
   const [duration, setDuration] = useState(60)
   const [planId, setPlanId] = useState<number | null>(plans[0]?.plan_id ?? null)
-  const [name, setName] = useState(defaultName)
-  const [phone, setPhone] = useState(defaultPhone)
+  const [name, setName] = useState('')
+  const [phone, setPhone] = useState('')
+  const [authed, setAuthed] = useState(false)
   const [pay, setPay] = useState<'transfer' | 'cash_on_arrival'>('transfer')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -83,6 +78,19 @@ export function BookingWidget({
     setError(null)
     setDone(false)
   }, [loadAvailability])
+
+  // Auth resolved client-side (keeps the venue page ISR-cacheable); prefill name
+  // and phone from the session's user metadata.
+  useEffect(() => {
+    const supabase = createClient()
+    supabase.auth.getSession().then(({ data }) => {
+      const u = data.session?.user
+      if (!u) return
+      setAuthed(true)
+      setName((prev) => prev || ((u.user_metadata?.full_name as string) ?? ''))
+      setPhone((prev) => prev || ((u.user_metadata?.phone as string) ?? ''))
+    })
+  }, [])
 
   const current = types.find((t) => t.console_type === selType) ?? null
   const capacity = current?.capacity ?? 0
@@ -110,7 +118,7 @@ export function BookingWidget({
 
   async function submit() {
     if (pick == null) return
-    if (!isAuthed) {
+    if (!authed) {
       router.push(`/auth/login?next=/${encodeURIComponent(slug)}`)
       return
     }
@@ -310,7 +318,7 @@ export function BookingWidget({
               <span className="text-lg font-bold text-[var(--primary)]">{gel(total)}</span>
             </div>
             <button onClick={submit} disabled={submitting} className="nm-glow rounded-xl px-6 py-2.5 font-semibold">
-              {submitting ? '...' : isAuthed ? 'დაჯავშნა' : 'შესვლა და დაჯავშნა'}
+              {submitting ? '...' : authed ? 'დაჯავშნა' : 'შესვლა და დაჯავშნა'}
             </button>
           </div>
 
