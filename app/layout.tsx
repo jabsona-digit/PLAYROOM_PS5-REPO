@@ -30,6 +30,7 @@ export const metadata: Metadata = {
       'იპოვე და დაჯავშნე PlayStation 5 კონსოლი შენს ქალაქში — ცოცხალი ხელმისაწვდომობა, მარტივი ჯავშანი.',
   },
   twitter: { card: 'summary_large_image' },
+  verification: { google: 'Z7s8o7LVOARJUvdVEK4dvDKQKoeIovggssg17u_GbMo' },
 }
 
 export default async function RootLayout({
