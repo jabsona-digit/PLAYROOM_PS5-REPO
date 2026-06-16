@@ -81,16 +81,23 @@ export function BookingWidget({
     setLoading(true)
     const supabase = createClient()
     const p_date = toISODate(dates[selDate])
-    // get_venue_consoles isn't in the generated RPC types until regen → loose-cast it
-    const rpcLoose = supabase.rpc as unknown as (f: string, a: Record<string, unknown>) => Promise<{ data: unknown }>
-    const [{ data }, { data: cdata }] = await Promise.all([
-      supabase.rpc('get_venue_availability', { p_slug: slug, p_date }),
-      rpcLoose('get_venue_consoles', { p_slug: slug, p_date }),
-    ])
-    const rows = (data as unknown as TypeRow[] | null) ?? []
-    setTypes(rows)
-    setConsoles((cdata as unknown as ConsoleRow[] | null) ?? [])
-    setSelType((prev) => (rows.some((r) => r.console_type === prev) ? prev : rows[0]?.console_type ?? 'standard'))
+    // 1) the timeline — this must always resolve the loading state
+    try {
+      const { data } = await supabase.rpc('get_venue_availability', { p_slug: slug, p_date })
+      const rows = (data as unknown as TypeRow[] | null) ?? []
+      setTypes(rows)
+      setSelType((prev) => (rows.some((r) => r.console_type === prev) ? prev : rows[0]?.console_type ?? 'standard'))
+    } catch {
+      setTypes([])
+    }
+    // 2) per-console availability — best-effort; never blocks the timeline
+    try {
+      const rpcLoose = supabase.rpc as unknown as (f: string, a: Record<string, unknown>) => Promise<{ data: unknown }>
+      const { data: cdata } = await rpcLoose('get_venue_consoles', { p_slug: slug, p_date })
+      setConsoles((cdata as ConsoleRow[] | null) ?? [])
+    } catch {
+      setConsoles([])
+    }
     setLoading(false)
   }, [slug, selDate, dates])
 
