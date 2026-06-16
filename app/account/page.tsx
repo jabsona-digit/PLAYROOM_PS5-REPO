@@ -25,6 +25,15 @@ const PAYMENT: Record<string, string> = {
   paid: 'გადახდილი',
   refunded: 'დაბრუნებული',
 }
+// what the customer booked (console_type → icon + label)
+const TYPE_LABEL: Record<string, { icon: string; label: string }> = {
+  standard: { icon: '🎮', label: 'PS5' },
+  coupe: { icon: '🎮', label: 'კუპე' },
+  vip: { icon: '🎮', label: 'VIP' },
+  billiard: { icon: '🎱', label: 'ბილიარდი' },
+  snooker: { icon: '🎱', label: 'სნუკერი' },
+}
+const typeBadge = (t?: string | null) => TYPE_LABEL[t ?? ''] ?? { icon: '🎮', label: t || 'PS5' }
 
 function fmt(ts: string) {
   const d = new Date(ts)
@@ -102,17 +111,26 @@ export default async function AccountPage() {
             const v = venueMap.get(b.venue_id)
             const s = STATUS[b.status] ?? { label: b.status, cls: '' }
             const { date, time } = fmt(b.start_time)
+            const tb = typeBadge((b as { console_type?: string | null }).console_type)
             return (
               <div key={b.id} className="nm-raised-sm rounded-2xl p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    {v ? (
-                      <Link href={`/${v.slug}`} className="font-bold hover:text-[var(--primary)]">
-                        {v.name}
-                      </Link>
-                    ) : (
-                      <span className="font-bold">კლუბი</span>
-                    )}
+                    <div className="flex flex-wrap items-center gap-2">
+                      {v ? (
+                        <Link href={`/${v.slug}`} className="font-bold hover:text-[var(--primary)]">
+                          {v.name}
+                        </Link>
+                      ) : (
+                        <span className="font-bold">კლუბი</span>
+                      )}
+                      <span
+                        className="rounded-full px-2 py-0.5 text-xs font-bold"
+                        style={{ background: 'color-mix(in oklch, var(--primary) 14%, transparent)', color: 'var(--primary)' }}
+                      >
+                        {tb.icon} {tb.label}
+                      </span>
+                    </div>
                     <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-[var(--muted-foreground)]">
                       <span className="flex items-center gap-1.5">
                         <Calendar className="size-3.5" /> {date}
