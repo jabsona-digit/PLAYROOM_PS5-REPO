@@ -11,7 +11,7 @@ export interface PulseStats {
   sessions_month: number
   hours_month: number
   cities: { city: string; players: number; occupancy: number }[]
-  venues: { name: string; city: string | null; total: number; busy: number; occupancy: number; venue_type?: string }[]
+  venues: { name: string; city: string | null; total: number; busy: number; occupancy: number; venue_type?: string; categories?: string[] }[]
   generated_at?: string
 }
 
@@ -26,9 +26,16 @@ const VENUE_META: Record<string, { label: string; icon: string; unit: string }> 
   mixed: { label: 'გაერთიანებული', icon: '🎯', unit: 'ადგილი' },
 }
 const meta = (t?: string) => VENUE_META[t || 'playroom'] ?? VENUE_META.playroom
-// concrete activity categories; a 'mixed' venue belongs to every one of them
+// concrete activity categories a venue can appear under
 const CATS = ['playroom', 'billiard', 'karaoke', 'vr'] as const
-const inCat = (vt: string | undefined, cat: string) => vt === cat || vt === 'mixed'
+type V = PulseStats['venues'][number]
+// A venue's REAL categories come from its console_type pools (get_pulse_stats).
+// Fallback for older payloads: derive from venue_type (mixed → both common kinds).
+const venueCats = (v: V): string[] => {
+  if (v.categories && v.categories.length) return v.categories
+  if (v.venue_type === 'mixed') return ['playroom', 'billiard']
+  return [v.venue_type ?? 'playroom']
+}
 
 export function PulseLive({ initial }: { initial: PulseStats | null }) {
   const [s, setS] = useState<PulseStats | null>(initial)
@@ -53,9 +60,9 @@ export function PulseLive({ initial }: { initial: PulseStats | null }) {
   }
 
   // category tabs — only shown when there's actually a choice (2+ activity types live)
-  const cats = CATS.filter((c) => s.venues.some((v) => inCat(v.venue_type, c)))
+  const cats = CATS.filter((c) => s.venues.some((v) => venueCats(v).includes(c)))
   const showTabs = cats.length > 1
-  const shown = tab === 'all' ? s.venues : s.venues.filter((v) => inCat(v.venue_type, tab))
+  const shown = tab === 'all' ? s.venues : s.venues.filter((v) => venueCats(v).includes(tab))
 
   return (
     <div className="space-y-8 animate-in-up">
