@@ -11,14 +11,28 @@ export interface PulseStats {
   sessions_month: number
   hours_month: number
   cities: { city: string; players: number; occupancy: number }[]
-  venues: { name: string; city: string | null; total: number; busy: number; occupancy: number }[]
+  venues: { name: string; city: string | null; total: number; busy: number; occupancy: number; venue_type?: string }[]
   generated_at?: string
 }
 
 const fmt = (n: number) => new Intl.NumberFormat('en-US').format(Math.round(n || 0))
 
+// venue_type → label / icon / unit (mirrors admin ASSET_LABELS)
+const VENUE_META: Record<string, { label: string; icon: string; unit: string }> = {
+  playroom: { label: 'ფლეირუმი', icon: '🎮', unit: 'კონსოლი' },
+  billiard: { label: 'ბილიარდი', icon: '🎱', unit: 'მაგიდა' },
+  karaoke: { label: 'კარაოკე', icon: '🎤', unit: 'ოთახი' },
+  vr: { label: 'VR', icon: '🥽', unit: 'სადგური' },
+  mixed: { label: 'გაერთიანებული', icon: '🎯', unit: 'ადგილი' },
+}
+const meta = (t?: string) => VENUE_META[t || 'playroom'] ?? VENUE_META.playroom
+// concrete activity categories; a 'mixed' venue belongs to every one of them
+const CATS = ['playroom', 'billiard', 'karaoke', 'vr'] as const
+const inCat = (vt: string | undefined, cat: string) => vt === cat || vt === 'mixed'
+
 export function PulseLive({ initial }: { initial: PulseStats | null }) {
   const [s, setS] = useState<PulseStats | null>(initial)
+  const [tab, setTab] = useState<string>('all')
 
   // Live: re-fetch every 15s (and on tab refocus). Aggregated, public, cheap.
   useEffect(() => {
@@ -37,6 +51,11 @@ export function PulseLive({ initial }: { initial: PulseStats | null }) {
   if (!s) {
     return <div className="py-32 text-center text-muted-foreground">იტვირთება…</div>
   }
+
+  // category tabs — only shown when there's actually a choice (2+ activity types live)
+  const cats = CATS.filter((c) => s.venues.some((v) => inCat(v.venue_type, c)))
+  const showTabs = cats.length > 1
+  const shown = tab === 'all' ? s.venues : s.venues.filter((v) => inCat(v.venue_type, tab))
 
   return (
     <div className="space-y-8 animate-in-up">
@@ -97,10 +116,36 @@ export function PulseLive({ initial }: { initial: PulseStats | null }) {
         <h2 className="mb-4 flex items-center gap-2 text-sm font-black uppercase tracking-widest text-muted-foreground">
           <Flame className="size-4 text-primary" /> ლაუნჯები ახლა
         </h2>
+
+        {/* Category tabs (🎮 ფლეირუმი / 🎱 ბილიარდი …) — 'mixed' venues appear in each */}
+        {showTabs && (
+          <div className="mb-5 flex flex-wrap gap-2">
+            {(['all', ...cats] as string[]).map((c) => {
+              const active = tab === c
+              const m = c === 'all' ? null : meta(c)
+              return (
+                <button
+                  key={c}
+                  onClick={() => setTab(c)}
+                  className="rounded-full border px-4 py-1.5 text-sm font-bold transition-colors"
+                  style={
+                    active
+                      ? { borderColor: 'var(--primary)', background: 'color-mix(in oklch, var(--primary) 16%, transparent)', color: 'var(--primary)' }
+                      : { borderColor: 'var(--border)', color: 'var(--muted-foreground)' }
+                  }
+                >
+                  {m ? `${m.icon} ${m.label}` : '✨ ყველა'}
+                </button>
+              )
+            })}
+          </div>
+        )}
+
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {s.venues.map((v, i) => {
+          {shown.map((v, i) => {
             const free = Math.max(0, v.total - v.busy)
             const hot = v.busy > 0
+            const m = meta(v.venue_type)
             return (
               <div
                 key={`${v.name}-${i}`}
@@ -110,7 +155,10 @@ export function PulseLive({ initial }: { initial: PulseStats | null }) {
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
                     <p className="truncate font-extrabold">{v.name}</p>
-                    {v.city && <p className="text-xs text-muted-foreground">{v.city}</p>}
+                    <p className="mt-0.5 flex items-center gap-1.5 text-xs text-muted-foreground">
+                      <span className="rounded-full bg-background/60 px-2 py-0.5 font-bold">{m.icon} {m.label}</span>
+                      {v.city && <span>{v.city}</span>}
+                    </p>
                   </div>
                   <span
                     className="shrink-0 rounded-full px-3 py-1 text-xs font-bold"
@@ -126,7 +174,7 @@ export function PulseLive({ initial }: { initial: PulseStats | null }) {
                   <div className="h-full rounded-full bg-primary transition-[width] duration-700" style={{ width: `${v.occupancy}%` }} />
                 </div>
                 <p className="mt-2 text-xs text-muted-foreground">
-                  {v.busy} / {v.total} კონსოლი დაკავებული · {v.occupancy}%
+                  {v.busy} / {v.total} {m.unit} დაკავებული · {v.occupancy}%
                 </p>
               </div>
             )
