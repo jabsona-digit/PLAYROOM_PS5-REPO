@@ -26,6 +26,13 @@ const isBilliard = (t: string) => BILLIARD_TYPES.has(t)
 const categoryOf = (t: string) => (isBilliard(t) ? 'billiard' : 'playroom')
 const planCategory = (p: Plan) => (p as { category?: string | null }).category ?? null
 
+// Georgian mobile: 9 digits starting with 5 (optionally a +995 prefix).
+const validGePhone = (raw: string) => {
+  const d = raw.replace(/\D/g, '')
+  const n = d.startsWith('995') ? d.slice(3) : d
+  return /^5\d{8}$/.test(n)
+}
+
 function dayLabel(d: Date) {
   const days = ['კვი', 'ორშ', 'სამ', 'ოთხ', 'ხუთ', 'პარ', 'შაბ']
   return { dow: days[d.getDay()], day: d.getDate() }
@@ -133,6 +140,7 @@ export function BookingWidget({
 
   const selectedPlan = shownPlans.find((p) => p.plan_id === planId) ?? null
   const total = selectedPlan ? Number(selectedPlan.price_per_hour) * (duration / 60) : 0
+  const phoneValid = validGePhone(phone)
 
   async function submit() {
     if (pick == null) return
@@ -140,8 +148,12 @@ export function BookingWidget({
       router.push(`/auth/login?next=/${encodeURIComponent(slug)}`)
       return
     }
-    if (!name.trim() || !phone.trim()) {
-      setError('შეავსე სახელი და ტელეფონი')
+    if (!name.trim()) {
+      setError('შეავსე სახელი')
+      return
+    }
+    if (!phoneValid) {
+      setError('შეიყვანე სრული მობილური ნომერი (მაგ. 5XX XX XX XX)')
       return
     }
     setSubmitting(true)
@@ -318,7 +330,20 @@ export function BookingWidget({
 
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
             <input value={name} onChange={(e) => setName(e.target.value)} placeholder="სახელი და გვარი" className="nm-raised-sm rounded-xl px-3 py-2 text-sm outline-none" />
-            <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="ტელეფონი" type="tel" className="nm-raised-sm rounded-xl px-3 py-2 text-sm outline-none" />
+            <div>
+              <input
+                value={phone}
+                onChange={(e) => setPhone(e.target.value.replace(/[^\d+\s]/g, ''))}
+                placeholder="ტელეფონი (5XX XX XX XX)"
+                type="tel"
+                inputMode="tel"
+                maxLength={16}
+                className={`nm-raised-sm w-full rounded-xl px-3 py-2 text-sm outline-none ${phone.trim() && !phoneValid ? 'ring-1 ring-[var(--status-busy)]' : ''}`}
+              />
+              {phone.trim() && !phoneValid && (
+                <p className="mt-1 text-xs text-[var(--status-busy)]">შეიყვანე სრული მობილური ნომერი</p>
+              )}
+            </div>
           </div>
 
           <div>
@@ -335,7 +360,11 @@ export function BookingWidget({
               <span className="text-[var(--muted-foreground)]">ჯამი: </span>
               <span className="text-lg font-bold text-[var(--primary)]">{gel(total)}</span>
             </div>
-            <button onClick={submit} disabled={submitting} className="nm-glow rounded-xl px-6 py-2.5 font-semibold">
+            <button
+              onClick={submit}
+              disabled={submitting || (authed && (!name.trim() || !phoneValid))}
+              className="nm-glow rounded-xl px-6 py-2.5 font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+            >
               {submitting ? '...' : authed ? 'დაჯავშნა' : 'შესვლა და დაჯავშნა'}
             </button>
           </div>
