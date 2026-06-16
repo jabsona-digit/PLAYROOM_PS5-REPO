@@ -167,10 +167,6 @@ export function BookingWidget({
 
   async function submit() {
     if (pick == null) return
-    if (!authed) {
-      router.push(`/auth/login?next=/${encodeURIComponent(slug)}`)
-      return
-    }
     if (!name.trim()) {
       setError('შეავსე სახელი')
       return
@@ -181,39 +177,70 @@ export function BookingWidget({
     }
     setSubmitting(true)
     setError(null)
-    const supabase = createClient()
-    const start = cellDate(pick)
-    // p_console_id isn't in the generated arg types until regen → loose-cast the call
-    const rpcBook = supabase.rpc as unknown as (f: string, a: Record<string, unknown>) => Promise<{ error: { message: string } | null }>
-    const { error } = await rpcBook('create_marketplace_booking', {
-      p_slug: slug,
-      p_start: start.toISOString(),
-      p_duration_min: duration,
-      p_customer_name: name.trim(),
-      p_customer_phone: phone.trim(),
-      p_console_type: selType,
-      p_pricing_plan_id: planId ?? undefined,
-      p_controllers: selectedPlan?.controllers ?? 2,
-      p_payment_method: pay,
-      p_console_id: pickedConsole ?? undefined,
-    })
-    setSubmitting(false)
-    if (error) {
-      setError(
-        /console_taken/.test(error.message)
-          ? 'ეს კონკრეტული ერთეული ამ დროს დაკავდა — აირჩიე სხვა ან „ნებისმიერი"'
-          : /no_capacity/.test(error.message)
-            ? `ამ დროს ყველა ${typeLabel(selType)} დაკავებულია — აირჩიე სხვა საათი`
-            : /start_in_past/.test(error.message)
-              ? 'არჩეული დრო უკვე გასულია'
-              : 'ჯავშნა ვერ შესრულდა, სცადე თავიდან',
-      )
+    try {
+      const supabase = createClient()
+      // A stored session can be stale; the RPC needs a LIVE JWT or it raises
+      // `unauthorized` and the booking silently fails. Confirm a session first
+      // (no session → send them to log in).
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) {
+        router.push(`/auth/login?next=/${encodeURIComponent(slug)}`)
+        return
+      }
+      const start = cellDate(pick)
+      // p_console_id isn't in the generated arg types until regen → loose-cast the call
+      const rpcBook = supabase.rpc as unknown as (f: string, a: Record<string, unknown>) => Promise<{ error: { message: string } | null }>
+      // Guard against a request that never settles (expired-token refresh / network
+      // stall) so the button can't freeze on "..." forever.
+      const TIMEOUT = Symbol('timeout')
+      const res = await Promise.race([
+        rpcBook('create_marketplace_booking', {
+          p_slug: slug,
+          p_start: start.toISOString(),
+          p_duration_min: duration,
+          p_customer_name: name.trim(),
+          p_customer_phone: phone.trim(),
+          p_console_type: selType,
+          p_pricing_plan_id: planId ?? undefined,
+          p_controllers: selectedPlan?.controllers ?? 2,
+          p_payment_method: pay,
+          p_console_id: pickedConsole ?? undefined,
+        }),
+        new Promise<typeof TIMEOUT>((r) => setTimeout(() => r(TIMEOUT), 15000)),
+      ])
+      if (res === TIMEOUT) {
+        setError('ქსელი ნელია — ჯავშნა ვერ დასრულდა. შეამოწმე კავშირი და სცადე თავიდან.')
+        return
+      }
+      const { error } = res
+      if (error) {
+        const m = error.message || ''
+        // expired / missing session → the booking ran as anon. Re-authenticate.
+        if (/unauthorized|jwt|token|expired|\b401\b|permission denied/i.test(m)) {
+          setError('სესია ამოიწურა — გაიარე ავტორიზაცია ხელახლა.')
+          router.push(`/auth/login?next=/${encodeURIComponent(slug)}`)
+          return
+        }
+        setError(
+          /console_taken/.test(m)
+            ? 'ეს კონკრეტული ერთეული ამ დროს დაკავდა — აირჩიე სხვა ან „ნებისმიერი"'
+            : /no_capacity/.test(m)
+              ? `ამ დროს ყველა ${typeLabel(selType)} დაკავებულია — აირჩიე სხვა საათი`
+              : /start_in_past/.test(m)
+                ? 'არჩეული დრო უკვე გასულია'
+                : 'ჯავშნა ვერ შესრულდა, სცადე თავიდან',
+        )
+        loadAvailability()
+        return
+      }
+      setDone(true)
+      setPick(null)
       loadAvailability()
-      return
+    } catch {
+      setError('ქსელის შეცდომა — სცადე თავიდან.')
+    } finally {
+      setSubmitting(false)
     }
-    setDone(true)
-    setPick(null)
-    loadAvailability()
   }
 
   return (
