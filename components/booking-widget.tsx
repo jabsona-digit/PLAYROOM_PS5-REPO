@@ -22,6 +22,9 @@ const typeLabel = (t: string) => TYPE_LABEL[t] ?? t.charAt(0).toUpperCase() + t.
 // controllers (ჯოისტიკი) are a playroom concept — billiard tables don't have them
 const BILLIARD_TYPES = new Set(['billiard', 'snooker'])
 const isBilliard = (t: string) => BILLIARD_TYPES.has(t)
+// console_type → asset category (tariffs are tagged by category; null = all)
+const categoryOf = (t: string) => (isBilliard(t) ? 'billiard' : 'playroom')
+const planCategory = (p: Plan) => (p as { category?: string | null }).category ?? null
 
 function dayLabel(d: Date) {
   const days = ['კვი', 'ორშ', 'სამ', 'ოთხ', 'ხუთ', 'პარ', 'შაბ']
@@ -118,7 +121,17 @@ export function BookingWidget({
     return cellDate(h) <= now
   }
 
-  const selectedPlan = plans.find((p) => p.plan_id === planId) ?? null
+  // only tariffs for the selected type's category (or untagged = all)
+  const shownPlans = useMemo(
+    () => plans.filter((p) => { const c = planCategory(p); return c == null || c === categoryOf(selType) }),
+    [plans, selType],
+  )
+  // keep the picked tariff valid when the type (hence category) changes
+  useEffect(() => {
+    setPlanId((prev) => (shownPlans.some((p) => p.plan_id === prev) ? prev : shownPlans[0]?.plan_id ?? null))
+  }, [shownPlans])
+
+  const selectedPlan = shownPlans.find((p) => p.plan_id === planId) ?? null
   const total = selectedPlan ? Number(selectedPlan.price_per_hour) * (duration / 60) : 0
 
   async function submit() {
@@ -283,11 +296,11 @@ export function BookingWidget({
             </div>
           </div>
 
-          {plans.length > 0 && (
+          {shownPlans.length > 0 && (
             <div>
               <div className="mb-1.5 text-sm text-[var(--muted-foreground)]">ტარიფი</div>
               <div className="flex flex-wrap gap-2">
-                {plans.map((p) => (
+                {shownPlans.map((p) => (
                   <button
                     key={p.plan_id}
                     onClick={() => setPlanId(p.plan_id)}
