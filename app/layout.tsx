@@ -45,6 +45,16 @@ export default function RootLayout({
             </Link>
             <nav className="flex items-center gap-2 text-sm">
               <Link
+                href="/live"
+                className="flex items-center gap-1.5 px-3 py-2 rounded-lg hover:text-[var(--primary)] transition-colors"
+              >
+                <span className="relative flex size-2">
+                  <span className="absolute inline-flex size-full animate-ping rounded-full bg-[var(--primary)] opacity-70" />
+                  <span className="relative inline-flex size-2 rounded-full bg-[var(--primary)]" />
+                </span>
+                Pulse
+              </Link>
+              <Link
                 href="/venues"
                 className="px-3 py-2 rounded-lg hover:text-[var(--primary)] transition-colors"
               >
