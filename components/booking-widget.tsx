@@ -15,8 +15,13 @@ const END_HOUR = 24
 const HOURS = Array.from({ length: END_HOUR - START_HOUR }, (_, i) => START_HOUR + i)
 const DURATIONS = [60, 90, 120, 180, 240]
 
-const TYPE_LABEL: Record<string, string> = { standard: 'PS5', coupe: 'კუპე', vip: 'VIP' }
+const TYPE_LABEL: Record<string, string> = {
+  standard: 'PS5', coupe: 'კუპე', vip: 'VIP', billiard: 'ბილიარდი', snooker: 'სნუკერი',
+}
 const typeLabel = (t: string) => TYPE_LABEL[t] ?? t.charAt(0).toUpperCase() + t.slice(1)
+// controllers (ჯოისტიკი) are a playroom concept — billiard tables don't have them
+const BILLIARD_TYPES = new Set(['billiard', 'snooker'])
+const isBilliard = (t: string) => BILLIARD_TYPES.has(t)
 
 function dayLabel(d: Date) {
   const days = ['კვი', 'ორშ', 'სამ', 'ოთხ', 'ხუთ', 'პარ', 'შაბ']
@@ -200,7 +205,7 @@ export function BookingWidget({
       {loading ? (
         <div className="py-10 text-center text-sm text-[var(--muted-foreground)]">იტვირთება…</div>
       ) : capacity === 0 ? (
-        <div className="py-10 text-center text-sm text-[var(--muted-foreground)]">კონსოლები არ მოიძებნა.</div>
+        <div className="py-10 text-center text-sm text-[var(--muted-foreground)]">{isBilliard(selType) ? 'მაგიდები' : 'კონსოლები'} არ მოიძებნა.</div>
       ) : (
         <div className="mt-4">
           <div className="flex gap-1">
@@ -290,7 +295,7 @@ export function BookingWidget({
                   >
                     <div className="font-medium">{p.name}</div>
                     <div className="text-xs text-[var(--muted-foreground)]">
-                      {gel(p.price_per_hour)}/სთ · {p.controllers} ჯოისტიკი
+                      {gel(p.price_per_hour)}/სთ{isBilliard(selType) ? '' : ` · ${p.controllers} ჯოისტიკი`}
                     </div>
                   </button>
                 ))}
