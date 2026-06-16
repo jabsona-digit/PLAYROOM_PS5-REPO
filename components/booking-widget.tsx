@@ -8,6 +8,7 @@ import type { Database } from '@/lib/database.types'
 
 type Busy = { start: string; end: string }
 type TypeRow = { console_type: string; capacity: number; busy: Busy[] }
+type ConsoleRow = { console_id: number; name: string; console_type: string; busy: Busy[] }
 export type Plan = Database['public']['Views']['public_venue_plans']['Row']
 
 const START_HOUR = 10
@@ -60,10 +61,12 @@ export function BookingWidget({
 
   const [selDate, setSelDate] = useState(0)
   const [types, setTypes] = useState<TypeRow[]>([])
+  const [consoles, setConsoles] = useState<ConsoleRow[]>([])
   const [selType, setSelType] = useState<string>('standard')
   const [loading, setLoading] = useState(true)
 
   const [pick, setPick] = useState<number | null>(null)
+  const [pickedConsole, setPickedConsole] = useState<number | null>(null) // null = any (capacity)
   const [duration, setDuration] = useState(60)
   const [planId, setPlanId] = useState<number | null>(plans[0]?.plan_id ?? null)
   const [name, setName] = useState('')
@@ -77,12 +80,16 @@ export function BookingWidget({
   const loadAvailability = useCallback(async () => {
     setLoading(true)
     const supabase = createClient()
-    const { data } = await supabase.rpc('get_venue_availability', {
-      p_slug: slug,
-      p_date: toISODate(dates[selDate]),
-    })
+    const p_date = toISODate(dates[selDate])
+    // get_venue_consoles isn't in the generated RPC types until regen → loose-cast it
+    const rpcLoose = supabase.rpc as unknown as (f: string, a: Record<string, unknown>) => Promise<{ data: unknown }>
+    const [{ data }, { data: cdata }] = await Promise.all([
+      supabase.rpc('get_venue_availability', { p_slug: slug, p_date }),
+      rpcLoose('get_venue_consoles', { p_slug: slug, p_date }),
+    ])
     const rows = (data as unknown as TypeRow[] | null) ?? []
     setTypes(rows)
+    setConsoles((cdata as unknown as ConsoleRow[] | null) ?? [])
     setSelType((prev) => (rows.some((r) => r.console_type === prev) ? prev : rows[0]?.console_type ?? 'standard'))
     setLoading(false)
   }, [slug, selDate, dates])
@@ -142,6 +149,15 @@ export function BookingWidget({
   const total = selectedPlan ? Number(selectedPlan.price_per_hour) * (duration / 60) : 0
   const phoneValid = validGePhone(phone)
 
+  // free SPECIFIC units of the selected type for the picked window (optional pick)
+  const winStart = pick != null ? cellDate(pick).getTime() : 0
+  const winEnd = winStart + duration * 60000
+  const freeConsoles = pick == null ? [] : consoles
+    .filter((c) => c.console_type === selType)
+    .filter((c) => !(c.busy ?? []).some((b) => new Date(b.start).getTime() < winEnd && new Date(b.end).getTime() > winStart))
+  // the specific pick is a preference — reset it when slot / type / duration changes
+  useEffect(() => { setPickedConsole(null) }, [pick, selType, duration])
+
   async function submit() {
     if (pick == null) return
     if (!authed) {
@@ -160,7 +176,9 @@ export function BookingWidget({
     setError(null)
     const supabase = createClient()
     const start = cellDate(pick)
-    const { error } = await supabase.rpc('create_marketplace_booking', {
+    // p_console_id isn't in the generated arg types until regen → loose-cast the call
+    const rpcBook = supabase.rpc as unknown as (f: string, a: Record<string, unknown>) => Promise<{ error: { message: string } | null }>
+    const { error } = await rpcBook('create_marketplace_booking', {
       p_slug: slug,
       p_start: start.toISOString(),
       p_duration_min: duration,
@@ -170,15 +188,18 @@ export function BookingWidget({
       p_pricing_plan_id: planId ?? undefined,
       p_controllers: selectedPlan?.controllers ?? 2,
       p_payment_method: pay,
+      p_console_id: pickedConsole ?? undefined,
     })
     setSubmitting(false)
     if (error) {
       setError(
-        /no_capacity/.test(error.message)
-          ? `ამ დროს ყველა ${typeLabel(selType)} დაკავებულია — აირჩიე სხვა საათი`
-          : /start_in_past/.test(error.message)
-            ? 'არჩეული დრო უკვე გასულია'
-            : 'ჯავშნა ვერ შესრულდა, სცადე თავიდან',
+        /console_taken/.test(error.message)
+          ? 'ეს კონკრეტული ერთეული ამ დროს დაკავდა — აირჩიე სხვა ან „ნებისმიერი"'
+          : /no_capacity/.test(error.message)
+            ? `ამ დროს ყველა ${typeLabel(selType)} დაკავებულია — აირჩიე სხვა საათი`
+            : /start_in_past/.test(error.message)
+              ? 'არჩეული დრო უკვე გასულია'
+              : 'ჯავშნა ვერ შესრულდა, სცადე თავიდან',
       )
       loadAvailability()
       return
@@ -307,6 +328,31 @@ export function BookingWidget({
               ))}
             </div>
           </div>
+
+          {freeConsoles.length > 0 && (
+            <div>
+              <div className="mb-1.5 text-sm text-[var(--muted-foreground)]">
+                კონკრეტული {isBilliard(selType) ? 'მაგიდა' : 'კონსოლი'} <span className="opacity-60">(არასავალდებულო)</span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => setPickedConsole(null)}
+                  className={`rounded-lg px-3 py-1.5 text-sm ${pickedConsole == null ? 'nm-glow' : 'nm-btn'}`}
+                >
+                  ✨ ნებისმიერი
+                </button>
+                {freeConsoles.map((c) => (
+                  <button
+                    key={c.console_id}
+                    onClick={() => setPickedConsole(c.console_id)}
+                    className={`rounded-lg px-3 py-1.5 text-sm ${pickedConsole === c.console_id ? 'nm-glow' : 'nm-btn'}`}
+                  >
+                    {c.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           {shownPlans.length > 0 && (
             <div>
