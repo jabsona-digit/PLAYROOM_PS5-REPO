@@ -23,8 +23,9 @@ const typeLabel = (t: string) => TYPE_LABEL[t] ?? t.charAt(0).toUpperCase() + t.
 // controllers (ჯოისტიკი) are a playroom concept — billiard tables don't have them
 const BILLIARD_TYPES = new Set(['billiard', 'snooker'])
 const isBilliard = (t: string) => BILLIARD_TYPES.has(t)
-// console_type → asset category (tariffs are tagged by category; null = all)
-const categoryOf = (t: string) => (isBilliard(t) ? 'billiard' : 'playroom')
+// console_type → asset category (tariffs are tagged by category; null = all).
+// VIP is its own priced category so a VIP console shows VIP tariffs, not the PS5 ones.
+const categoryOf = (t: string) => (isBilliard(t) ? 'billiard' : t === 'vip' ? 'vip' : 'playroom')
 const planCategory = (p: Plan) => (p as { category?: string | null }).category ?? null
 
 // Georgian mobile: 9 digits starting with 5 (optionally a +995 prefix).
@@ -379,7 +380,7 @@ export function BookingWidget({
             </div>
           </div>
 
-          {freeConsoles.length > 0 && (
+          {freeConsoles.length > 1 && (
             <div>
               <div className="mb-1.5 text-sm text-[var(--muted-foreground)]">
                 კონკრეტული {isBilliard(selType) ? 'მაგიდა' : 'კონსოლი'} <span className="opacity-60">(არასავალდებულო)</span>
