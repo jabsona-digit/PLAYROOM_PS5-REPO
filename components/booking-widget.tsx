@@ -23,10 +23,11 @@ const typeLabel = (t: string) => TYPE_LABEL[t] ?? t.charAt(0).toUpperCase() + t.
 // controllers (ჯოისტიკი) are a playroom concept — billiard tables don't have them
 const BILLIARD_TYPES = new Set(['billiard', 'snooker'])
 const isBilliard = (t: string) => BILLIARD_TYPES.has(t)
-// console_type → asset category (tariffs are tagged by category; null = all).
-// VIP is its own priced category so a VIP console shows VIP tariffs, not the PS5 ones.
-const categoryOf = (t: string) => (isBilliard(t) ? 'billiard' : t === 'vip' ? 'vip' : 'playroom')
+// console_type → asset class (playroom/billiard). VIP is a playroom SUB-type, not its
+// own class — its own price comes from the tariff's console_type, not the category.
+const categoryOf = (t: string) => (isBilliard(t) ? 'billiard' : 'playroom')
 const planCategory = (p: Plan) => (p as { category?: string | null }).category ?? null
+const planSubType = (p: Plan) => (p as { console_type?: string | null }).console_type ?? null
 
 // Georgian mobile: 9 digits starting with 5 (optionally a +995 prefix).
 const validGePhone = (raw: string) => {
@@ -144,9 +145,14 @@ export function BookingWidget({
     return cellDate(h) <= now
   }
 
-  // only tariffs for the selected type's category (or untagged = all)
+  // only tariffs that apply to the selected type: asset class matches (or null) AND
+  // sub-type matches (or null = all in that class). So VIP shows VIP tariffs only.
   const shownPlans = useMemo(
-    () => plans.filter((p) => { const c = planCategory(p); return c == null || c === categoryOf(selType) }),
+    () => plans.filter((p) => {
+      const c = planCategory(p)
+      const sub = planSubType(p)
+      return (c == null || c === categoryOf(selType)) && (sub == null || sub === selType)
+    }),
     [plans, selType],
   )
   // keep the picked tariff valid when the type (hence category) changes
