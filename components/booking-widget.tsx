@@ -92,8 +92,9 @@ export function BookingWidget({
     }
     // 2) per-console availability — best-effort; never blocks the timeline
     try {
-      const rpcLoose = supabase.rpc as unknown as (f: string, a: Record<string, unknown>) => Promise<{ data: unknown }>
-      const { data: cdata } = await rpcLoose('get_venue_consoles', { p_slug: slug, p_date })
+      const { data: cdata } = await (supabase as unknown as {
+        rpc: (f: string, a: Record<string, unknown>) => Promise<{ data: unknown }>
+      }).rpc('get_venue_consoles', { p_slug: slug, p_date })
       setConsoles((cdata as ConsoleRow[] | null) ?? [])
     } catch {
       setConsoles([])
@@ -189,8 +190,14 @@ export function BookingWidget({
         return
       }
       const start = cellDate(pick)
-      // p_console_id isn't in the generated arg types until regen → loose-cast the call
-      const rpcBook = supabase.rpc as unknown as (f: string, a: Record<string, unknown>) => Promise<{ error: { message: string } | null }>
+      // p_console_id isn't in the generated arg types until regen → loose-cast.
+      // NB: must call as supabase.rpc(...) (a MEMBER call). Pulling the method into a
+      // bare variable loses `this`, so supabase reads `this.rest` on undefined and
+      // throws "Cannot read properties of undefined (reading 'rest')".
+      const rpcBook = (fn: string, args: Record<string, unknown>) =>
+        (supabase as unknown as {
+          rpc: (f: string, a: Record<string, unknown>) => Promise<{ error: { message: string } | null }>
+        }).rpc(fn, args)
       // Guard against a request that never settles (expired-token refresh / network
       // stall) so the button can't freeze on "..." forever.
       const TIMEOUT = Symbol('timeout')
