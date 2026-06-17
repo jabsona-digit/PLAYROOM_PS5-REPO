@@ -179,11 +179,12 @@ export function BookingWidget({
     setError(null)
     try {
       const supabase = createClient()
-      // A stored session can be stale; the RPC needs a LIVE JWT or it raises
-      // `unauthorized` and the booking silently fails. Confirm a session first
-      // (no session → send them to log in).
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session) {
+      // Validate the session with the SERVER (not just read a stored one). A dead /
+      // unrefreshable token makes the authenticated RPC throw — the real cause of the
+      // "freeze" then "network error". If the session is invalid, re-authenticate.
+      const { data: { user }, error: authErr } = await supabase.auth.getUser()
+      if (authErr || !user) {
+        setError('სესია ამოიწურა — გამოდი და შედი ხელახლა.')
         router.push(`/auth/login?next=/${encodeURIComponent(slug)}`)
         return
       }
@@ -236,8 +237,16 @@ export function BookingWidget({
       setDone(true)
       setPick(null)
       loadAvailability()
-    } catch {
-      setError('ქსელის შეცდომა — სცადე თავიდან.')
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e)
+      // a thrown auth/refresh failure means the session is dead → re-authenticate
+      if (/auth|jwt|token|refresh|session|sign|401|403/i.test(msg)) {
+        setError('სესია ამოიწურა — გამოდი და შედი ხელახლა.')
+        router.push(`/auth/login?next=/${encodeURIComponent(slug)}`)
+      } else {
+        // surface the real error instead of a vague "network error"
+        setError(`შეცდომა — ${msg || 'სცადე თავიდან'}`)
+      }
     } finally {
       setSubmitting(false)
     }
