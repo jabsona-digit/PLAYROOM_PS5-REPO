@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { Noto_Sans_Georgian } from 'next/font/google'
 import Link from 'next/link'
 import { HeaderAuth } from '@/components/header-auth'
+import { ChatConcierge } from '@/components/ChatConcierge'
 import './globals.css'
 
 const notoGeorgian = Noto_Sans_Georgian({
@@ -73,6 +74,7 @@ export default function RootLayout({
             <span className="text-xs">PlayStation კლუბების პლატფორმა საქართველოში</span>
           </div>
         </footer>
+        <ChatConcierge />
       </body>
     </html>
   )
