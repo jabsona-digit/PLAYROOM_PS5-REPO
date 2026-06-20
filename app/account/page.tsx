@@ -6,6 +6,7 @@ import { gel } from '@/lib/utils'
 import { BookingReview } from '@/components/booking-review'
 import { BookingPass } from '@/components/booking-pass'
 import { MyTournamentPasses } from '@/components/my-tournament-passes'
+import { GamerPassport } from '@/components/gamer-passport'
 import type { Database } from '@/lib/database.types'
 
 export const dynamic = 'force-dynamic'
@@ -97,6 +98,8 @@ export default async function AccountPage() {
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-10">
+      <GamerPassport />
+
       <h1 className="text-2xl font-bold mb-6">ჩემი ჯავშნები</h1>
 
       {bookings.length === 0 ? (
