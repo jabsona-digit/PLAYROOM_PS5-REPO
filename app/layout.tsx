@@ -61,6 +61,12 @@ export default function RootLayout({
               >
                 კლუბები
               </Link>
+              <Link
+                href="/tournaments"
+                className="flex items-center gap-1.5 px-3 py-2 rounded-lg hover:text-[var(--primary)] transition-colors"
+              >
+                🏆 <span className="hidden sm:inline">ტურნირები</span>
+              </Link>
               <HeaderAuth />
             </nav>
           </div>
