@@ -5,6 +5,7 @@ import { getUser } from '@/lib/auth'
 import { gel } from '@/lib/utils'
 import { BookingReview } from '@/components/booking-review'
 import { BookingPass } from '@/components/booking-pass'
+import { MyTournamentPasses } from '@/components/my-tournament-passes'
 import type { Database } from '@/lib/database.types'
 
 export const dynamic = 'force-dynamic'
@@ -167,6 +168,8 @@ export default async function AccountPage() {
           })}
         </div>
       )}
+
+      <MyTournamentPasses />
     </div>
   )
 }

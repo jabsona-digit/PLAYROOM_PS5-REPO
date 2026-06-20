@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { Trophy, Calendar, MapPin, Users, Gamepad2 } from 'lucide-react'
+import { TournamentRegister } from './tournament-register'
 
 export interface PublicTournament {
   id: string
@@ -108,11 +109,18 @@ export function TournamentCard({ t }: { t: PublicTournament }) {
     </div>
   )
 
-  return t.venue_slug ? (
+  const card = t.venue_slug ? (
     <Link href={`/${t.venue_slug}`} className="block">
       {inner}
     </Link>
   ) : (
     inner
+  )
+
+  return (
+    <div className="flex h-full flex-col gap-2">
+      {card}
+      {t.status === 'registration' && <TournamentRegister tournamentId={t.id} entryFee={t.entry_fee} />}
+    </div>
   )
 }
