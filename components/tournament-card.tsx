@@ -10,6 +10,9 @@ export interface PublicTournament {
   status: string
   entry_fee: number | null
   prize_pool: number | null
+  prize_second: number | null
+  prize_third_minutes: number | null
+  min_participants: number | null
   starts_at: string | null
   group_size: number | null
   advance_per_group: number | null
@@ -74,6 +77,13 @@ export function TournamentCard({ t }: { t: PublicTournament }) {
           <div className="nm-inset rounded-xl px-4 py-3 text-center">
             <p className="text-xs text-[var(--muted-foreground)]">საპრიზო ფონდი</p>
             <p className="text-2xl font-extrabold text-[var(--primary)]">{t.prize_pool}₾</p>
+            {(Number(t.prize_second) > 0 || Number(t.prize_third_minutes) > 0) && (
+              <div className="mt-2 flex flex-wrap justify-center gap-1.5 text-[11px] text-[var(--muted-foreground)]">
+                <span>🥇 {t.prize_pool}₾</span>
+                {Number(t.prize_second) > 0 && <span>· 🥈 {t.prize_second}₾</span>}
+                {Number(t.prize_third_minutes) > 0 && <span>· 🥉 {t.prize_third_minutes}წთ</span>}
+              </div>
+            )}
           </div>
         )}
 
