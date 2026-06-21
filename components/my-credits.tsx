@@ -1,14 +1,17 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { QRCodeSVG } from 'qrcode.react'
 import { Gift } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
 // Free play-time the customer won (e.g. 3rd place in a tournament -> prize_third_minutes).
-// Recorded server-side as a customer_credits row; redeemable at the venue on a future
-// booking/session. Fetched client-side (user is already authed on /account).
+// Recorded server-side as a customer_credits row; redeemable at the venue. The operator
+// scans the QR (MTLC:<id>) or types the short code at checkout to discount the play charge.
+// Fetched client-side (user is already authed on /account).
 interface Credit {
   id: string
+  code: string | null
   minutes: number
   minutes_used: number
   remaining: number
@@ -62,11 +65,24 @@ export function MyCredits() {
                 გამოყენებული: {c.minutes_used} / {c.minutes} წთ
               </p>
             )}
-            <p className="mt-2 text-xs text-[var(--muted-foreground)] text-pretty">
-              გამოიყენე კლუბში — აჩვენე ეს ეკრანი ადგილზე.
-              {c.expires_at &&
-                ` მოქმედებს ${new Date(c.expires_at).toLocaleDateString('ka-GE', { dateStyle: 'short' })}-მდე.`}
-            </p>
+
+            {/* redeem code + QR — the operator scans/enters this at checkout */}
+            <div className="mt-3 flex items-center gap-3 border-t border-[var(--border)] pt-3">
+              <div className="rounded-xl bg-white p-2">
+                <QRCodeSVG value={`MTLC:${c.id}`} size={84} level="M" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[11px] text-[var(--muted-foreground)]">კოდი</p>
+                <p className="font-mono text-xl font-black tracking-widest text-[var(--primary)]">
+                  {c.code ?? c.id.slice(0, 6).toUpperCase()}
+                </p>
+                <p className="mt-1 text-[11px] text-[var(--muted-foreground)] text-pretty">
+                  აჩვენე კლუბში სათამაშოდ — ოპერატორი ჩამოგაჭრის უფასო წუთებს.
+                  {c.expires_at &&
+                    ` მოქმედებს ${new Date(c.expires_at).toLocaleDateString('ka-GE', { dateStyle: 'short' })}-მდე.`}
+                </p>
+              </div>
+            </div>
           </div>
         ))}
       </div>
