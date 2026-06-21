@@ -6,6 +6,7 @@ import { gel } from '@/lib/utils'
 import { BookingReview } from '@/components/booking-review'
 import { BookingPass } from '@/components/booking-pass'
 import { MyTournamentPasses } from '@/components/my-tournament-passes'
+import { MyCredits } from '@/components/my-credits'
 import { GamerPassport } from '@/components/gamer-passport'
 import type { Database } from '@/lib/database.types'
 
@@ -171,6 +172,8 @@ export default async function AccountPage() {
           })}
         </div>
       )}
+
+      <MyCredits />
 
       <MyTournamentPasses />
     </div>
