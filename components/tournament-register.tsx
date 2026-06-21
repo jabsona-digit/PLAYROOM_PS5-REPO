@@ -17,6 +17,7 @@ export function TournamentRegister({
   const [state, setState] = useState<'idle' | 'form' | 'loading' | 'done' | 'auth'>('idle')
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
+  const [email, setEmail] = useState('')
   const [err, setErr] = useState('')
 
   const open = async () => {
@@ -30,12 +31,16 @@ export function TournamentRegister({
     }
     const { data } = await supabase
       .from('marketplace_customers')
-      .select('full_name, phone')
+      .select('full_name, phone, email')
       .eq('id', user.id)
       .maybeSingle()
     if (data) {
-      setName(((data as { full_name: string | null }).full_name) ?? '')
-      setPhone(((data as { phone: string | null }).phone) ?? '')
+      const c = data as { full_name: string | null; phone: string | null; email: string | null }
+      setName(c.full_name ?? '')
+      setPhone(c.phone ?? '')
+      setEmail(c.email ?? user.email ?? '')
+    } else {
+      setEmail(user.email ?? '')
     }
     setState('form')
   }
@@ -43,6 +48,16 @@ export function TournamentRegister({
   const submit = async () => {
     if (!name.trim()) {
       setErr('შეიყვანე სახელი')
+      return
+    }
+    // Georgian mobile: 9 digits starting with 5 (tolerate +995 / spaces / dashes)
+    const cleanPhone = phone.replace(/\D/g, '').replace(/^995/, '')
+    if (!/^5\d{8}$/.test(cleanPhone)) {
+      setErr('შეიყვანე სწორი მობილური ნომერი (მაგ. 5XX XX XX XX)')
+      return
+    }
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.trim())) {
+      setErr('შეიყვანე სწორი იმეილი')
       return
     }
     setState('loading')
@@ -55,15 +70,20 @@ export function TournamentRegister({
       p_tournament: tournamentId,
       p_name: name.trim(),
       p_phone: phone.trim(),
+      p_email: email.trim(),
     })
     if (error) {
       const m = /registration_closed/.test(error.message)
         ? 'რეგისტრაცია დახურულია'
         : /tournament_full/.test(error.message)
           ? 'ადგილები შეივსო'
-          : /not_authenticated/.test(error.message)
-            ? 'ჯერ შედი სისტემაში'
-            : error.message
+          : /invalid_phone/.test(error.message)
+            ? 'არასწორი მობილური ნომერი'
+            : /invalid_email/.test(error.message)
+              ? 'არასწორი იმეილი'
+              : /not_authenticated/.test(error.message)
+                ? 'ჯერ შედი სისტემაში'
+                : error.message
       setErr(m)
       setState('form')
       return
@@ -101,11 +121,24 @@ export function TournamentRegister({
           className="nm-inset w-full rounded-lg px-3 py-2 text-sm outline-none"
         />
         <input
+          type="tel"
+          inputMode="tel"
           value={phone}
           onChange={(e) => setPhone(e.target.value)}
-          placeholder="ტელეფონი"
+          placeholder="მობილური (5XX XX XX XX)"
           className="nm-inset w-full rounded-lg px-3 py-2 text-sm outline-none"
         />
+        <input
+          type="email"
+          inputMode="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="იმეილი"
+          className="nm-inset w-full rounded-lg px-3 py-2 text-sm outline-none"
+        />
+        <p className="text-[11px] text-[var(--muted-foreground)]">
+          ნამდვილი ნომერი და იმეილი — ტურნირამდე დაგიკავშირდებით.
+        </p>
         {err && <p className="text-xs text-red-400">{err}</p>}
         <button
           onClick={submit}
