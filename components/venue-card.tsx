@@ -1,11 +1,16 @@
 import Link from 'next/link'
 import { Star, MapPin } from 'lucide-react'
-import { gel } from '@/lib/utils'
+import { gel, venueTypeMeta } from '@/lib/utils'
 import type { Database } from '@/lib/database.types'
 
-export type PublicVenue = Database['public']['Views']['public_venues']['Row']
+// the live public_venues view exposes venue_type (migration 0071); the generated
+// types copy in this repo is behind, so add it here until types are re-synced.
+export type PublicVenue = Database['public']['Views']['public_venues']['Row'] & {
+  venue_type?: string | null
+}
 
 export function VenueCard({ venue }: { venue: PublicVenue }) {
+  const tm = venueTypeMeta(venue.venue_type)
   return (
     <Link
       href={`/${venue.slug}`}
@@ -24,6 +29,9 @@ export function VenueCard({ venue }: { venue: PublicVenue }) {
             🎮
           </div>
         )}
+        <div className="absolute top-3 left-3 nm-raised-sm rounded-full px-2.5 py-1 text-xs font-semibold">
+          {tm.icon} {tm.label}
+        </div>
         {Number(venue.avg_rating) > 0 && (
           <div className="absolute top-3 right-3 nm-raised-sm rounded-full px-2.5 py-1 flex items-center gap-1 text-xs font-semibold">
             <Star className="size-3.5 fill-[var(--primary)] text-[var(--primary)]" />
