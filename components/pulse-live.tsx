@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react'
 import { Activity, Flame, Clock, MapPin } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { ScrollReveal } from '@/components/scroll-reveal'
+import { cn } from '@/lib/utils'
 
 export interface PulseStats {
   players_now: number
@@ -17,7 +19,7 @@ export interface PulseStats {
 
 const fmt = (n: number) => new Intl.NumberFormat('en-US').format(Math.round(n || 0))
 
-// venue_type → label / icon / unit (mirrors admin ASSET_LABELS)
+// venue_type → label / icon / unit
 const VENUE_META: Record<string, { label: string; icon: string; unit: string }> = {
   playroom: { label: 'ფლეირუმი', icon: '🎮', unit: 'კონსოლი' },
   billiard: { label: 'ბილიარდი', icon: '🎱', unit: 'მაგიდა' },
@@ -26,11 +28,9 @@ const VENUE_META: Record<string, { label: string; icon: string; unit: string }> 
   mixed: { label: 'გაერთიანებული', icon: '🎯', unit: 'ადგილი' },
 }
 const meta = (t?: string) => VENUE_META[t || 'playroom'] ?? VENUE_META.playroom
-// concrete activity categories a venue can appear under
 const CATS = ['playroom', 'billiard', 'karaoke', 'vr'] as const
 type V = PulseStats['venues'][number]
-// A venue's REAL categories come from its console_type pools (get_pulse_stats).
-// Fallback for older payloads: derive from venue_type (mixed → both common kinds).
+
 const venueCats = (v: V): string[] => {
   if (v.categories && v.categories.length) return v.categories
   if (v.venue_type === 'mixed') return ['playroom', 'billiard']
@@ -41,7 +41,6 @@ export function PulseLive({ initial }: { initial: PulseStats | null }) {
   const [s, setS] = useState<PulseStats | null>(initial)
   const [tab, setTab] = useState<string>('all')
 
-  // Live: re-fetch every 15s (and on tab refocus). Aggregated, public, cheap.
   useEffect(() => {
     const sb = createClient()
     let alive = true
@@ -56,142 +55,170 @@ export function PulseLive({ initial }: { initial: PulseStats | null }) {
   }, [])
 
   if (!s) {
-    return <div className="py-32 text-center text-muted-foreground">იტვირთება…</div>
+    return (
+      <div className="py-32 flex flex-col items-center justify-center gap-4">
+        {/* Glowing Neon Loader */}
+        <div className="size-10 rounded-full neon-border shadow-[0_0_15px_var(--primary)] animate-pulse" />
+        <p className="text-sm font-bold text-glow text-[var(--primary)]">იტვირთება...</p>
+      </div>
+    )
   }
 
-  // category tabs — only shown when there's actually a choice (2+ activity types live)
   const cats = CATS.filter((c) => s.venues.some((v) => venueCats(v).includes(c)))
   const showTabs = cats.length > 1
   const shown = tab === 'all' ? s.venues : s.venues.filter((v) => venueCats(v).includes(tab))
 
   return (
-    <div className="space-y-8 animate-in-up">
+    <div className="space-y-8 pb-10">
       {/* Hero */}
-      <section className="rounded-3xl border border-border bg-card/60 p-8 text-center sm:p-12">
-        <p className="flex items-center justify-center gap-2 text-xs font-black uppercase tracking-[0.25em] text-primary">
-          <span className="relative flex size-2">
-            <span className="absolute inline-flex size-full animate-ping rounded-full bg-primary opacity-70" />
-            <span className="relative inline-flex size-2 rounded-full bg-primary" />
-          </span>
-          Martelounge Pulse
-        </p>
-        <p className="mt-6 font-mono text-6xl font-black tabular-nums text-primary text-glow sm:text-8xl">
-          {fmt(s.players_now)}
-        </p>
-        <p className="mt-2 text-lg font-bold sm:text-2xl">მოთამაშე ახლა თამაშობს 🎮</p>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {fmt(s.venues_live)} / {fmt(s.venues_total)} ლაუნჯში საქართველოში
-        </p>
+      <ScrollReveal disabled>
+        <section className="rounded-3xl nm-raised p-8 text-center sm:p-12 relative overflow-hidden">
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[120%] h-[120%] bg-[var(--primary)] opacity-5 blur-[120px] pointer-events-none" />
+          
+          <div className="relative z-10 flex items-center justify-center gap-2 text-xs font-black uppercase tracking-[0.25em] text-[var(--primary)]">
+            <span className="relative flex size-2">
+              <span className="absolute inline-flex size-full animate-ping rounded-full bg-[var(--primary)] opacity-70" />
+              <span className="relative inline-flex size-2 rounded-full bg-[var(--primary)]" />
+            </span>
+            Martelounge Pulse
+          </div>
+          <p className="relative z-10 mt-6 font-mono text-6xl font-black tabular-nums text-[var(--primary)] text-glow sm:text-8xl">
+            {fmt(s.players_now)}
+          </p>
+          <p className="relative z-10 mt-3 text-lg font-bold sm:text-2xl text-shadow-sm">მოთამაშე ახლა თამაშობს 🎮</p>
+          <p className="relative z-10 mt-1 text-sm text-[var(--muted-foreground)] font-medium">
+            {fmt(s.venues_live)} / {fmt(s.venues_total)} ლაუნჯში საქართველოში
+          </p>
 
-        <div className="mt-8 flex flex-wrap items-center justify-center gap-3 text-sm">
-          <span className="flex items-center gap-1.5 rounded-full border border-border bg-background/40 px-4 py-2 font-bold">
-            <Activity className="size-4 text-primary" /> {fmt(s.sessions_month)} სესია ამ თვეში
-          </span>
-          <span className="flex items-center gap-1.5 rounded-full border border-border bg-background/40 px-4 py-2 font-bold">
-            <Clock className="size-4 text-primary" /> {fmt(s.hours_month)} საათი ნათამაშები
-          </span>
-        </div>
-      </section>
+          <div className="relative z-10 mt-8 flex flex-wrap items-center justify-center gap-4 text-sm">
+            <span className="nm-inset flex items-center gap-2 rounded-full px-5 py-2.5 font-bold hover:text-[var(--primary)] transition-colors">
+              <Activity className="size-4 text-[var(--primary)]" /> {fmt(s.sessions_month)} სესია ამ თვეში
+            </span>
+            <span className="nm-inset flex items-center gap-2 rounded-full px-5 py-2.5 font-bold hover:text-[var(--primary)] transition-colors">
+              <Clock className="size-4 text-[var(--primary)]" /> {fmt(s.hours_month)} საათი ნათამაშები
+            </span>
+          </div>
+        </section>
+      </ScrollReveal>
 
       {/* Cities */}
       {s.cities.filter((c) => c.city !== '—').length > 0 && (
-        <section className="rounded-3xl border border-border bg-card/60 p-6">
-          <h2 className="mb-4 flex items-center gap-2 text-sm font-black uppercase tracking-widest text-muted-foreground">
-            <MapPin className="size-4 text-primary" /> ქალაქების მიხედვით
-          </h2>
-          <div className="space-y-3">
-            {s.cities.filter((c) => c.city !== '—').map((c) => (
-              <div key={c.city} className="flex items-center gap-3">
-                <span className="w-20 shrink-0 text-sm font-bold">{c.city}</span>
-                <div className="h-3 flex-1 overflow-hidden rounded-full bg-background/60">
-                  <div
-                    className="h-full rounded-full bg-primary transition-[width] duration-700"
-                    style={{ width: `${Math.max(3, c.occupancy)}%`, boxShadow: '0 0 12px var(--primary)' }}
-                  />
+        <ScrollReveal delayMs={100}>
+          <section className="rounded-3xl nm-inset p-6">
+            <h2 className="mb-5 flex items-center gap-2 text-sm font-black uppercase tracking-widest text-[var(--muted-foreground)]">
+              <MapPin className="size-4 text-[var(--primary)]" /> ქალაქების მიხედვით
+            </h2>
+            <div className="space-y-4">
+              {s.cities.filter((c) => c.city !== '—').map((c) => (
+                <div key={c.city} className="flex items-center gap-3">
+                  <span className="w-20 shrink-0 text-sm font-bold">{c.city}</span>
+                  <div className="h-3.5 flex-1 overflow-hidden rounded-full bg-[var(--background)]/60">
+                    <div
+                      className="h-full rounded-full bg-[var(--primary)] shadow-[0_0_12px_var(--primary)] transition-[width] duration-1000 ease-out"
+                      style={{ width: `${Math.max(3, c.occupancy)}%` }}
+                    />
+                  </div>
+                  <span className="w-12 shrink-0 text-right font-mono text-sm font-bold tabular-nums text-[var(--primary)]">
+                    {c.occupancy}%
+                  </span>
                 </div>
-                <span className="w-12 shrink-0 text-right font-mono text-sm font-bold tabular-nums text-muted-foreground">
-                  {c.occupancy}%
-                </span>
-              </div>
-            ))}
-          </div>
-        </section>
+              ))}
+            </div>
+          </section>
+        </ScrollReveal>
       )}
 
       {/* Venues */}
       <section>
-        <h2 className="mb-4 flex items-center gap-2 text-sm font-black uppercase tracking-widest text-muted-foreground">
-          <Flame className="size-4 text-primary" /> ლაუნჯები ახლა
-        </h2>
+        <ScrollReveal disabled>
+          <div className="mb-5 flex items-end justify-between flex-wrap gap-4">
+            <h2 className="flex items-center gap-2 text-sm font-black uppercase tracking-widest text-[var(--muted-foreground)]">
+              <Flame className="size-4 text-[var(--primary)]" /> ლაუნჯები ახლა
+            </h2>
 
-        {/* Category tabs (🎮 ფლეირუმი / 🎱 ბილიარდი …) — 'mixed' venues appear in each */}
-        {showTabs && (
-          <div className="mb-5 flex flex-wrap gap-2">
-            {(['all', ...cats] as string[]).map((c) => {
-              const active = tab === c
-              const m = c === 'all' ? null : meta(c)
-              return (
-                <button
-                  key={c}
-                  onClick={() => setTab(c)}
-                  className="rounded-full border px-4 py-1.5 text-sm font-bold transition-colors"
-                  style={
-                    active
-                      ? { borderColor: 'var(--primary)', background: 'color-mix(in oklch, var(--primary) 16%, transparent)', color: 'var(--primary)' }
-                      : { borderColor: 'var(--border)', color: 'var(--muted-foreground)' }
-                  }
-                >
-                  {m ? `${m.icon} ${m.label}` : '✨ ყველა'}
-                </button>
-              )
-            })}
+            {/* Category tabs */}
+            {showTabs && (
+              <div className="flex flex-wrap gap-2">
+                {(['all', ...cats] as string[]).map((c) => {
+                  const active = tab === c
+                  const m = c === 'all' ? null : meta(c)
+                  return (
+                    <button
+                      key={c}
+                      onClick={() => setTab(c)}
+                      className={cn(
+                        'rounded-full px-4 py-1.5 text-sm font-bold transition-all',
+                        active ? 'nm-glow neon-border text-[var(--primary)] hover:-translate-y-0.5' : 'nm-btn text-[var(--muted-foreground)] hover:text-white'
+                      )}
+                    >
+                      {m ? `${m.icon} ${m.label}` : '✨ ყველა'}
+                    </button>
+                  )
+                })}
+              </div>
+            )}
           </div>
-        )}
+        </ScrollReveal>
 
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {shown.map((v, i) => {
             const free = Math.max(0, v.total - v.busy)
             const hot = v.busy > 0
             const m = meta(v.venue_type)
             return (
-              <div
-                key={`${v.name}-${i}`}
-                className="rounded-2xl border border-border bg-card/60 p-5"
-                style={hot ? { boxShadow: `0 0 0 1px color-mix(in oklch, var(--primary) ${Math.min(60, v.occupancy)}%, transparent)` } : undefined}
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <p className="truncate font-extrabold">{v.name}</p>
-                    <p className="mt-0.5 flex items-center gap-1.5 text-xs text-muted-foreground">
-                      <span className="rounded-full bg-background/60 px-2 py-0.5 font-bold">{m.icon} {m.label}</span>
-                      {v.city && <span>{v.city}</span>}
-                    </p>
+              <ScrollReveal key={`${v.name}-${tab}-${i}`} delayMs={i * 80}>
+                <div
+                  className={cn(
+                    "rounded-2xl nm-raised p-5 transition-transform duration-300 hover:-translate-y-1 hover:scale-[1.01] hover:shadow-[0_10px_25px_rgba(0,0,0,0.4)] relative overflow-hidden group",
+                    hot && "neon-border"
+                  )}
+                >
+                  {/* Internal gentle glow gradient for active venues */}
+                  {hot && <div className="absolute inset-0 bg-gradient-to-br from-[var(--primary)]/10 via-transparent to-transparent pointer-events-none z-0" />}
+                  
+                  <div className="flex items-start justify-between gap-2 relative z-10">
+                    <div className="min-w-0">
+                      <p className="truncate font-extrabold">{v.name}</p>
+                      <p className="mt-1 flex items-center gap-1.5 text-xs text-[var(--muted-foreground)]">
+                        <span className="rounded-full nm-inset px-2.5 py-1 font-bold text-[var(--primary)] whitespace-nowrap">{m.icon} {m.label}</span>
+                        {v.city && <span className="truncate">{v.city}</span>}
+                      </p>
+                    </div>
+                    {/* Compact pulse indicator to avoid rapid pings across many cards */}
+                    <span className={cn(
+                        "shrink-0 rounded-full px-3 py-1.5 text-xs font-bold flex items-center gap-1.5 nm-inset transition-colors",
+                        hot ? "text-[var(--primary)]" : "text-[var(--muted-foreground)]"
+                      )}
+                    >
+                      {hot && <span className="relative flex size-1.5"><span className="absolute inline-flex size-full animate-ping rounded-full bg-[var(--primary)] opacity-70" /><span className="relative inline-flex size-full rounded-full bg-[var(--primary)]" /></span>}
+                      {free > 0 ? `🟢 ${free} თავისუფალი` : 'სავსე'}
+                    </span>
                   </div>
-                  <span
-                    className="shrink-0 rounded-full px-3 py-1 text-xs font-bold"
-                    style={{
-                      background: `color-mix(in oklch, ${hot ? 'var(--primary)' : 'var(--muted-foreground)'} 16%, transparent)`,
-                      color: hot ? 'var(--primary)' : 'var(--muted-foreground)',
-                    }}
-                  >
-                    {free > 0 ? `🟢 ${free} თავისუფალი` : 'სავსე'}
-                  </span>
+                  
+                  <div className="mt-5 h-2.5 overflow-hidden rounded-full bg-[var(--background)]/60 relative z-10">
+                    <div 
+                      className="h-full rounded-full bg-[var(--primary)] shadow-[0_0_8px_var(--primary)] transition-[width] duration-1000 ease-out" 
+                      style={{ width: `${Math.max(1, v.occupancy)}%` }} 
+                    />
+                  </div>
+                  <p className="mt-2 text-xs font-medium text-[var(--muted-foreground)] relative z-10">
+                    {v.busy} / {v.total} {m.unit} დაკავებული · <span className="text-[var(--foreground)]">{v.occupancy}%</span>
+                  </p>
                 </div>
-                <div className="mt-4 h-2 overflow-hidden rounded-full bg-background/60">
-                  <div className="h-full rounded-full bg-primary transition-[width] duration-700" style={{ width: `${v.occupancy}%` }} />
-                </div>
-                <p className="mt-2 text-xs text-muted-foreground">
-                  {v.busy} / {v.total} {m.unit} დაკავებული · {v.occupancy}%
-                </p>
-              </div>
+              </ScrollReveal>
             )
           })}
         </div>
       </section>
 
-      <p className="pb-6 text-center text-xs text-muted-foreground/70">
-        🔴 ცოცხალი — ახლდება ყოველ 15 წამში
-      </p>
+      <div className="pt-4 text-center">
+        <ScrollReveal delayMs={300}>
+           <p className="inline-flex items-center gap-1.5 rounded-full nm-inset px-4 py-1.5 text-xs text-[var(--muted-foreground)]">
+             <span className="relative flex size-1.5"><span className="absolute inline-flex size-full animate-ping rounded-full bg-red-500 opacity-70" /><span className="relative inline-flex size-full rounded-full bg-red-400" /></span>
+             ახლდება ცოცხლად
+           </p>
+        </ScrollReveal>
+      </div>
     </div>
   )
 }

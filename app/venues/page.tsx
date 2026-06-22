@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { VenueCard, type PublicVenue } from '@/components/venue-card'
 import { Search } from 'lucide-react'
 import { cn, VENUE_CATS, venueCategories, venueTypeMeta } from '@/lib/utils'
+import { ScrollReveal } from '@/components/scroll-reveal'
 
 export const dynamic = 'force-dynamic'
 
@@ -56,71 +57,85 @@ export default async function VenuesPage({
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-10">
-      <h1 className="text-3xl font-bold mb-6">ყველა კლუბი</h1>
+      <ScrollReveal disabled>
+        <h1 className="text-3xl font-bold mb-6">ყველა კლუბი</h1>
 
-      {/* search — plain GET form, works server-side without JS */}
-      <form method="get" className="mb-5 flex items-center gap-2">
-        {activeType && <input type="hidden" name="type" value={activeType} />}
-        <div className="nm-inset flex flex-1 items-center gap-2 rounded-2xl px-4 py-3">
-          <Search className="size-4 shrink-0 text-[var(--muted-foreground)]" />
-          <input
-            type="search"
-            name="q"
-            defaultValue={term}
-            placeholder="ძებნა კლუბის ან ქალაქის მიხედვით…"
-            className="w-full bg-transparent text-sm outline-none placeholder:text-[var(--muted-foreground)]"
-          />
-        </div>
-        <button type="submit" className="nm-btn rounded-2xl px-5 py-3 text-sm font-bold text-[var(--primary)]">
-          ძებნა
-        </button>
-      </form>
+        {/* search — plain GET form, works server-side without JS */}
+        <form method="get" className="mb-5 flex items-center gap-2">
+          {activeType && <input type="hidden" name="type" value={activeType} />}
+          <div className="nm-inset flex flex-1 items-center gap-2 rounded-2xl px-4 py-3">
+            <Search className="size-4 shrink-0 text-[var(--muted-foreground)]" />
+            <input
+              type="search"
+              name="q"
+              defaultValue={term}
+              placeholder="ძებნა კლუბის ან ქალაქის მიხედვით…"
+              className="w-full bg-transparent text-sm outline-none placeholder:text-[var(--muted-foreground)]"
+            />
+          </div>
+          <button type="submit" className="nm-btn rounded-2xl px-5 py-3 text-sm font-bold text-[var(--primary)] hover:neon-border transition-all">
+            ძებნა
+          </button>
+        </form>
+      </ScrollReveal>
 
       {/* type filter — 🎮 ფლეირუმი / 🎱 ბილიარდი … (mixed venues appear under each) */}
       {presentCats.length > 1 && (
-        <div className="mb-8 flex flex-wrap gap-2">
-          <Link
-            href={tabHref()}
-            className={cn('rounded-full px-4 py-2 text-sm font-bold', activeType ? 'nm-btn text-[var(--muted-foreground)]' : 'nm-glow text-[var(--primary)]')}
-          >
-            ✨ ყველა
-          </Link>
-          {presentCats.map((c) => {
-            const m = venueTypeMeta(c)
-            const on = activeType === c
-            return (
-              <Link
-                key={c}
-                href={tabHref(c)}
-                className={cn('rounded-full px-4 py-2 text-sm font-bold', on ? 'nm-glow text-[var(--primary)]' : 'nm-btn text-[var(--muted-foreground)]')}
-              >
-                {m.icon} {m.label}
-              </Link>
-            )
-          })}
-        </div>
+        <ScrollReveal disabled>
+           {/* Glassmorphic Sticky Filter Bar (Rule #2) */}
+          <div className="sticky top-16 z-30 mb-8 -mx-4 flex gap-2 overflow-x-auto px-4 py-3 backdrop-blur-xl bg-[var(--background)]/80 sm:mx-0 sm:px-0 sm:py-0 sm:bg-transparent sm:backdrop-blur-none no-scrollbar">
+            <Link
+              href={tabHref()}
+              className={cn('shrink-0 rounded-full px-4 py-2 text-sm font-bold transition-transform hover:-translate-y-0.5', activeType ? 'nm-btn text-[var(--muted-foreground)]' : 'nm-glow neon-border text-[var(--primary)]')}
+            >
+              ✨ ყველა
+            </Link>
+            {presentCats.map((c) => {
+              const m = venueTypeMeta(c)
+              const on = activeType === c
+              return (
+                <Link
+                  key={c}
+                  href={tabHref(c)}
+                  className={cn('shrink-0 rounded-full px-4 py-2 text-sm font-bold transition-transform hover:-translate-y-0.5', on ? 'nm-glow neon-border text-[var(--primary)]' : 'nm-btn text-[var(--muted-foreground)]')}
+                >
+                  {m.icon} {m.label}
+                </Link>
+              )
+            })}
+          </div>
+        </ScrollReveal>
       )}
 
       {list.length === 0 ? (
-        <div className="nm-inset rounded-2xl p-10 text-center text-[var(--muted-foreground)]">
-          {term
-            ? `«${term}» — კლუბი ვერ მოიძებნა.`
-            : activeType
-              ? `${venueTypeMeta(activeType).icon} ${venueTypeMeta(activeType).label} — კლუბი ჯერ არ არის.`
-              : 'ჯერ გამოქვეყნებული კლუბი არ არის. 🎮'}
-        </div>
+        <ScrollReveal disabled>
+          <div className="nm-inset rounded-2xl p-10 text-center text-[var(--muted-foreground)]">
+            {term
+              ? `«${term}» — კლუბი ვერ მოიძებნა.`
+              : activeType
+                ? `${venueTypeMeta(activeType).icon} ${venueTypeMeta(activeType).label} — კლუბი ჯერ არ არის.`
+                : 'ჯერ გამოქვეყნებული კლუბი არ არის. 🎮'}
+          </div>
+        </ScrollReveal>
       ) : (
         <>
           {(term || activeType) && (
-            <p className="mb-4 text-sm text-[var(--muted-foreground)]">
-              ნაპოვნია {list.length} კლუბი
-              {term ? ` «${term}»-ზე` : ''}
-              {activeType ? ` · ${venueTypeMeta(activeType).icon} ${venueTypeMeta(activeType).label}` : ''}
-            </p>
+            <ScrollReveal disabled>
+              <p className="mb-4 text-sm text-[var(--muted-foreground)]">
+                ნაპოვნია {list.length} კლუბი
+                {term ? ` «${term}»-ზე` : ''}
+                {activeType ? ` · ${venueTypeMeta(activeType).icon} ${venueTypeMeta(activeType).label}` : ''}
+              </p>
+            </ScrollReveal>
           )}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {list.map((v) => (
-              <VenueCard key={v.id} venue={v} />
+            {list.map((v, i) => (
+              <ScrollReveal key={v.id} delayMs={i * 100}>
+                {/* CSS tilt without overriding VenueCard */}
+                <div className="transition-transform duration-300 hover:-translate-y-1.5 hover:scale-[1.01] hover:shadow-[0_15px_30px_color-mix(in_oklch,var(--nm-dark)_80%,transparent)] rounded-2xl group">
+                  <VenueCard venue={v} />
+                </div>
+              </ScrollReveal>
             ))}
           </div>
         </>

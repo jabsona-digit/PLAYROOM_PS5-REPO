@@ -119,3 +119,90 @@
 @utility animate-in-up {
   animation: slide-in-up 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
+
+/* =========================================================================
+   2026 WOW EFFECT UTILITIES
+   ========================================================================= */
+
+/* Progressive Enhancement: Base hidden state.
+   Rendered DOM does NOT use this. JS adds it on mount before intersection.
+   This ensures content is fully visible if JS fails/or for crawlers. */
+@utility will-reveal {
+  opacity: 0;
+}
+
+@keyframes float-reveal {
+  0% { opacity: 0; transform: translateY(20px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fade-reveal {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+@utility is-revealed {
+  animation: float-reveal 0.65s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@utility is-revealed-fade {
+  animation: fade-reveal 0.65s ease-out forwards;
+}
+
+/* 
+  Neon borders & pulses (Tournaments, Live indicators)
+*/
+@utility neon-border {
+  border: 1px solid color-mix(in oklch, var(--primary) 70%, transparent);
+  box-shadow: 0 0 10px color-mix(in oklch, var(--primary) 20%, transparent),
+              inset 0 0 10px color-mix(in oklch, var(--primary) 10%, transparent);
+}
+
+@utility neon-ping {
+  position: relative;
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    box-shadow: 0 0 0 0 color-mix(in oklch, var(--primary) 80%, transparent);
+    animation: ping-glow 2.5s cubic-bezier(0, 0, 0.2, 1) infinite;
+  }
+}
+
+@keyframes ping-glow {
+  70%, 100% {
+    transform: scale(1.5);
+    box-shadow: 0 0 0 15px transparent;
+    opacity: 0;
+  }
+}
+
+/* Motion Hygiene (Rule #4) - disable all infinite/looping animations
+   and disable complex reveals if user prefers reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .neon-ping::before {
+    animation: none !important;
+    display: none !important;
+  }
+  .will-reveal {
+    opacity: 1 !important;
+  }
+}
+
+/* Utilities */
+.no-scrollbar { 
+  scrollbar-width: none; 
+  -ms-overflow-style: none; 
+}
+.no-scrollbar::-webkit-scrollbar { 
+  display: none; 
+}

@@ -2,8 +2,8 @@ import type { Metadata } from 'next'
 import { Trophy } from 'lucide-react'
 import { createPublicClient } from '@/lib/supabase/public'
 import { TournamentCard, type PublicTournament } from '@/components/tournament-card'
+import { ScrollReveal } from '@/components/scroll-reveal'
 
-// ISR — tournaments change slowly; cookie-less anon client keeps this CDN-cacheable.
 export const revalidate = 60
 
 export const metadata: Metadata = {
@@ -13,8 +13,6 @@ export const metadata: Metadata = {
   alternates: { canonical: '/tournaments' },
 }
 
-// public_tournaments is a new anon view not yet in the generated Database types;
-// read it through a minimal typed shape (no `any`) until types are regenerated.
 type TournamentReader = {
   from: (rel: string) => {
     select: (cols: string) => {
@@ -37,37 +35,49 @@ export default async function TournamentsPage() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-10">
-      <div className="mb-2 flex items-center gap-3">
-        <Trophy className="size-7 text-[var(--primary)]" />
-        <h1 className="text-3xl font-bold">ტურნირები</h1>
-      </div>
-      <p className="mb-8 text-[var(--muted-foreground)]">
-        მსოფლიო ჩემპიონატის ფორმატი — ჯგუფური ეტაპი + ნოკაუტი. დარეგისტრირდი, ითამაშე, მოიგე. 🏆
-      </p>
+      <ScrollReveal disabled>
+        <div className="mb-2 flex items-center gap-3">
+          <Trophy className="size-7 text-[var(--primary)] text-glow" />
+          <h1 className="text-3xl font-bold text-glow">ტურნირები</h1>
+        </div>
+        <p className="mb-8 text-[var(--muted-foreground)]">
+          მსოფლიო ჩემპიონატის ფორმატი — ჯგუფური ეტაპი + ნოკაუტი. დარეგისტრირდი, ითამაშე, მოიგე. 🏆
+        </p>
+      </ScrollReveal>
 
       {list.length === 0 ? (
-        <div className="nm-inset rounded-2xl p-10 text-center text-[var(--muted-foreground)]">
-          ჯერ ტურნირები არ არის — მალე! 🏆
-        </div>
+        <ScrollReveal disabled>
+          <div className="nm-inset rounded-2xl p-10 text-center text-[var(--muted-foreground)]">
+            ჯერ ტურნირები არ არის — მალე! 🏆
+          </div>
+        </ScrollReveal>
       ) : (
         <div className="space-y-10">
-          <Section title="🟢 ღია რეგისტრაცია" items={live} />
-          <Section title="🔜 მალე" items={soon} />
-          <Section title="🏁 დასრულებული" items={done} />
+          <Section title="🟢 მიმდინარე" items={live} delayOffset={0} />
+          <Section title="🔜 მალე" items={soon} delayOffset={live.length > 0 ? 200 : 0} />
+          <Section title="🏁 დასრულებული" items={done} delayOffset={(live.length + soon.length) > 0 ? 300 : 0} />
         </div>
       )}
     </div>
   )
 }
 
-function Section({ title, items }: { title: string; items: PublicTournament[] }) {
+function Section({ title, items, delayOffset }: { title: string; items: PublicTournament[]; delayOffset: number }) {
   if (items.length === 0) return null
   return (
     <section>
-      <h2 className="mb-4 text-lg font-bold">{title}</h2>
+      <ScrollReveal disabled>
+        <h2 className="mb-4 flex items-center gap-2 text-lg font-bold uppercase tracking-wide">
+          {title}
+        </h2>
+      </ScrollReveal>
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-        {items.map((t) => (
-          <TournamentCard key={t.id} t={t} />
+        {items.map((t, i) => (
+          <ScrollReveal key={t.id} delayMs={delayOffset + (i * 100)}>
+            <div className="h-full group">
+              <TournamentCard t={t} />
+            </div>
+          </ScrollReveal>
         ))}
       </div>
     </section>
