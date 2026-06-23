@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
 import { QrCode } from 'lucide-react'
+import { QRCodeSVG } from 'qrcode.react'
 
 // Gamer Passport — XP/level + computed badges from get_gamer_passport() (migration 0112).
 // The RPC returns badge keys + progress; the Georgian titles/icons live here.
@@ -48,6 +49,7 @@ export function GamerPassport() {
   const [p, setP] = useState<Passport | null>(null)
   const [loaded, setLoaded] = useState(false)
   const [flipped, setFlipped] = useState(false)
+  const [me, setMe] = useState<{ id: string; name: string } | null>(null)
 
   useEffect(() => {
     const supabase = createClient()
@@ -56,6 +58,17 @@ export function GamerPassport() {
     ).then(({ data }) => {
       setP(data && (data as Passport).stats ? data : null)
       setLoaded(true)
+    })
+    // Real identity for the passport QR (MTLM:<marketplace_customer_id>) + the displayed name.
+    supabase.auth.getUser().then(async ({ data }) => {
+      const u = data.user
+      if (!u) return
+      const { data: mc } = await supabase.from('marketplace_customers').select('full_name').eq('id', u.id).maybeSingle()
+      const name = (mc as { full_name?: string } | null)?.full_name
+        || (u.user_metadata?.full_name as string | undefined)
+        || u.email
+        || 'მოთამაშე'
+      setMe({ id: u.id, name })
     })
   }, [])
 
@@ -84,9 +97,12 @@ export function GamerPassport() {
             style={{ backfaceVisibility: 'hidden' }}
           >
             <div className="mb-5 flex items-center justify-between gap-3">
-              <h2 className="flex items-center gap-2 text-lg font-bold">
-                <span className="text-2xl">🪪</span> გეიმერ პასპორტი
-              </h2>
+              <div className="min-w-0">
+                <h2 className="flex items-center gap-2 text-lg font-bold">
+                  <span className="text-2xl">🪪</span> გეიმერ პასპორტი
+                </h2>
+                {me?.name && <p className="mt-0.5 truncate text-sm font-semibold text-[var(--primary)]">{me.name}</p>}
+              </div>
               <span className="nm-inset rounded-full px-4 py-1.5 text-sm font-extrabold text-[var(--primary)] text-glow neon-border flex items-center gap-1.5">
                 LVL {s.level}
                 {s.level >= 5 && <span className="relative flex size-1.5 ml-1"><span className="absolute inline-flex size-full animate-ping rounded-full bg-[var(--primary)]" /><span className="relative inline-flex size-full rounded-full bg-[var(--primary)]" /></span>}
@@ -155,15 +171,11 @@ export function GamerPassport() {
             </h3>
             
             <div className="nm-inset p-5 rounded-3xl bg-white mb-8 relative z-10 hover:scale-105 transition-transform duration-500">
-              {/* Fallback Abstract SVG QR Pattern (DOM-rendered) */}
-              <svg viewBox="0 0 100 100" className="size-48 sm:size-56 text-black" fill="currentColor">
-                {/* 3 Position tracking squares */}
-                <path d="M5 5h30v30H5zm5 5v20h20V10zM15 15h10v10H15z" />
-                <path d="M65 5h30v30H65zm5 5v20h20V10zM75 15h10v10H75z" />
-                <path d="M5 65h30v30H5zm5 5v20h20V70zM15 75h10v10H15z" />
-                {/* Payload data abstract pattern matching Martelounge styling */}
-                <path d="M40 5h10v10H40zm0 15h20v10H40zm15-15h5v5h-5zM40 30h10v10H40zm15 0h10v10h-10zm-15 15h40v10H40zM5 40h30v10H5zm10 15h20v10H15zM40 65h10v30H40zm15 0h10v10h-10zm-15 15h20v10h-20zM65 40h30v10H65zm10 15h20v10H75zM75 65h20v10H75zm10 15h10v10H85z" />
-              </svg>
+              {me?.id ? (
+                <QRCodeSVG value={`MTLM:${me.id}`} size={208} level="M" />
+              ) : (
+                <div className="size-52 animate-pulse rounded-xl bg-black/10" />
+              )}
             </div>
             
             <p className="text-sm font-medium text-[var(--muted-foreground)] text-center max-w-[240px] relative z-10 pb-4">
