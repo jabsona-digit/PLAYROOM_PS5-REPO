@@ -5,6 +5,18 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 
+// Consume a captured referral code (?ref -> localStorage) once a session exists. Idempotent
+// server-side (referred_by is set once, no self-ref); never blocks auth.
+async function claimReferral(supabase: ReturnType<typeof createClient>) {
+  try {
+    if (typeof window === 'undefined') return
+    const ref = localStorage.getItem('mtl_ref')
+    if (!ref) return
+    await (supabase.rpc as unknown as (f: string, a: Record<string, unknown>) => Promise<unknown>)('claim_referral', { p_code: ref })
+    localStorage.removeItem('mtl_ref')
+  } catch { /* never block auth */ }
+}
+
 export function AuthForm({ mode }: { mode: 'login' | 'register' }) {
   const router = useRouter()
   const params = useSearchParams()
@@ -42,6 +54,7 @@ export function AuthForm({ mode }: { mode: 'login' | 'register' }) {
             full_name: fullName,
             phone,
           })
+          await claimReferral(supabase)
           router.push(next)
           router.refresh()
         } else {
@@ -67,6 +80,7 @@ export function AuthForm({ mode }: { mode: 'login' | 'register' }) {
               { onConflict: 'id', ignoreDuplicates: true },
             )
         }
+        await claimReferral(supabase)
         router.push(next)
         router.refresh()
       }

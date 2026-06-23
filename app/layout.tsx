@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { HeaderAuth } from '@/components/header-auth'
 import { ChatConcierge } from '@/components/ChatConcierge'
 import { SentryInit } from '@/components/sentry-init'
+import { ReferralCapture } from '@/components/referral-capture'
 import './globals.css'
 
 const notoGeorgian = Noto_Sans_Georgian({
@@ -41,6 +42,7 @@ export default function RootLayout({
     <html lang="ka" className={`${notoGeorgian.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col">
         <SentryInit />
+        <ReferralCapture />
         <header className="sticky top-0 z-40 backdrop-blur-md bg-[var(--background)]/80 border-b border-[var(--border)]">
           <div className="mx-auto max-w-6xl px-4 h-16 flex items-center justify-between">
             <Link href="/" className="text-xl font-bold tracking-tight text-glow">
