@@ -1,0 +1,46 @@
+name: Sync Supabase Types
+
+# Migrations live in the admin repo, so this can't be migration-triggered here.
+# Runs weekly + on demand to keep lib/database.types.ts from drifting against prod.
+# (Run manually right after a migration that changes a table/RPC this site reads.)
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 6 * * 1' # Mondays 06:00 UTC
+
+jobs:
+  gen-types:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Supabase CLI
+        run: npm install -g supabase@latest
+
+      - name: Generate TypeScript types
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          supabase gen types typescript \
+            --project-id rvlkimzqzwizcivkxtnd \
+            --schema public \
+            > lib/database.types.ts
+
+      - name: Commit if changed
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add lib/database.types.ts
+          if git diff --cached --quiet; then
+            echo "No type changes — skipping commit"
+          else
+            git commit -m "chore: sync database.types.ts"
+            git push
+          fi
