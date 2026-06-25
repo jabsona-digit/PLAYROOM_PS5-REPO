@@ -33,7 +33,7 @@ interface Passport {
 }
 
 const CATALOG: Record<string, { title: string; desc: string; icon: string }> = {
-  first_booking: { title: 'პირველი ნაბიჯი', desc: 'პირველი ჯავშანი', icon: '🎮' },
+  first_booking: { title: 'პირველი ნაბიჯი', desc: 'პირველი ვიზიტი', icon: '🎮' },
   regular: { title: 'რეგულარი', desc: '5 ვიზიტი', icon: '🕹️' },
   veteran: { title: 'ვეტერანი', desc: '25 ვიზიტი', icon: '🎯' },
   explorer: { title: 'მკვლევარი', desc: '3 სხვადასხვა კლუბი', icon: '🗺️' },
@@ -50,6 +50,7 @@ export function GamerPassport() {
   const [loaded, setLoaded] = useState(false)
   const [flipped, setFlipped] = useState(false)
   const [me, setMe] = useState<{ id: string; name: string } | null>(null)
+  const [showQR, setShowQR] = useState(false)
 
   useEffect(() => {
     const supabase = createClient()
@@ -78,6 +79,7 @@ export function GamerPassport() {
   const earnedCount = p.badges.filter((b) => b.earned).length
 
   return (
+    <>
     <div className="mb-10 w-full" style={{ perspective: '1200px' }}>
       <button
         onClick={() => setFlipped(!flipped)}
@@ -184,7 +186,31 @@ export function GamerPassport() {
           </section>
         </div>
       </button>
+
+      {/* Plain, un-transformed QR for actual SCANNING. The flip-card's 3D-transformed back
+          face does not decode reliably; this flat overlay always does. */}
+      {me?.id && (
+        <button
+          onClick={() => setShowQR(true)}
+          className="nm-glow mt-4 flex w-full items-center justify-center gap-2 rounded-2xl py-3 text-sm font-bold text-[var(--primary)]"
+        >
+          <QrCode className="size-4" /> QR კოდი (სკანირებისთვის)
+        </button>
+      )}
     </div>
+
+    {showQR && me?.id && (
+      <div
+        className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm"
+        onClick={() => setShowQR(false)}
+      >
+        <div className="rounded-3xl bg-white p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+          <QRCodeSVG value={`MTLM:${me.id}`} size={244} level="M" />
+          <p className="mt-3 text-center text-sm font-bold text-black">წარადგინე ადმინთან 📷</p>
+        </div>
+      </div>
+    )}
+    </>
   )
 }
 
