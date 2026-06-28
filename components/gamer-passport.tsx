@@ -48,7 +48,6 @@ const CATALOG: Record<string, { title: string; desc: string; icon: string }> = {
 export function GamerPassport() {
   const [p, setP] = useState<Passport | null>(null)
   const [loaded, setLoaded] = useState(false)
-  const [flipped, setFlipped] = useState(false)
   const [me, setMe] = useState<{ id: string; name: string } | null>(null)
   const [showQR, setShowQR] = useState(false)
 
@@ -82,14 +81,14 @@ export function GamerPassport() {
     <>
     <div className="mb-10 w-full" style={{ perspective: '1200px' }}>
       <button
-        onClick={() => setFlipped(!flipped)}
+        onClick={() => me?.id && setShowQR(true)}
         className="group relative w-full text-left outline-none block"
-        aria-label={flipped ? "დაბრუნება წინა მხარეს" : "QR კოდის ჩვენება"}
+        aria-label="QR კოდის გახსნა სკანირებისთვის"
       >
         <div
           className={cn(
             "relative w-full rounded-3xl transition-all duration-[800ms] shadow-[0_10px_30px_rgba(0,0,0,0.2)] md:group-hover:-translate-y-2 md:group-hover:shadow-[0_20px_40px_var(--primary-glow)] motion-reduce:transition-none motion-reduce:shadow-none",
-            flipped ? "[transform:rotateY(180deg)]" : "md:group-hover:[transform:rotateY(180deg)]"
+            "md:group-hover:[transform:rotateY(180deg)]"
           )}
           style={{ transformStyle: 'preserve-3d' }}
         >
@@ -172,16 +171,14 @@ export function GamerPassport() {
               <QrCode className="size-6" /> QR იდენტიფიკაცია
             </h3>
             
-            <div className="nm-inset p-5 rounded-3xl bg-white mb-8 relative z-10 hover:scale-105 transition-transform duration-500">
-              {me?.id ? (
-                <QRCodeSVG value={`MTLM:${me.id}`} size={208} level="M" />
-              ) : (
-                <div className="size-52 animate-pulse rounded-xl bg-black/10" />
-              )}
+            {/* No scannable QR on the 3D back face (it doesn't decode reliably). This is a
+                call-to-action; tapping the card opens the FLAT, scannable QR modal. */}
+            <div className="nm-inset flex size-52 items-center justify-center rounded-3xl mb-8 relative z-10 group-hover:scale-105 transition-transform duration-500">
+              <QrCode className="size-24 text-[var(--primary)]" />
             </div>
-            
+
             <p className="text-sm font-medium text-[var(--muted-foreground)] text-center max-w-[240px] relative z-10 pb-4">
-              წარადგინე კლუბის ადმინისტრაციასთან სკანირებისა და ქულების დასარიცხად.
+              დააჭირე — გაიხსნება QR კოდი, რომელსაც წარადგენ კლუბის ადმინთან ქულების დასარიცხად.
             </p>
           </section>
         </div>
