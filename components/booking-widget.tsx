@@ -152,15 +152,24 @@ export function BookingWidget({
     d.setHours(hour, 0, 0, 0)
     return d
   }
+  // „ახლავე": TODAY's current hour stays bookable — the booking starts a couple of
+  // minutes from now instead of the already-past top of the hour (the server rejects
+  // p_start <= now()). Late night is prime time for a gaming lounge; without this the
+  // whole grid went dead dots after 23:00 and looked broken (owner-reported).
+  function isNowCell(h: number) {
+    return selDate === 0 && cellDate(h) <= now && now < cellDate(h + 1)
+  }
+  function effStart(h: number) {
+    return isNowCell(h) ? new Date(Date.now() + 2 * 60_000) : cellDate(h)
+  }
   function freeAt(h: number) {
-    const cs = cellDate(h)
-    const ce = new Date(cs)
-    ce.setHours(h + 1)
+    const cs = effStart(h)
+    const ce = new Date(cs.getTime() + 3_600_000)
     const used = busy.filter((b) => new Date(b.start) < ce && new Date(b.end) > cs).length
     return Math.max(0, capacity - used)
   }
   function isPast(h: number) {
-    return cellDate(h) <= now
+    return cellDate(h) <= now && !isNowCell(h)
   }
 
   // only tariffs that apply to the selected type: asset class matches (or null) AND
@@ -183,7 +192,7 @@ export function BookingWidget({
   const phoneValid = validGePhone(phone)
 
   // free SPECIFIC units of the selected type for the picked window (optional pick)
-  const winStart = pick != null ? cellDate(pick).getTime() : 0
+  const winStart = pick != null ? effStart(pick).getTime() : 0
   const winEnd = winStart + duration * 60000
   const freeConsoles = pick == null ? [] : consoles
     .filter((c) => c.console_type === selType)
@@ -214,7 +223,7 @@ export function BookingWidget({
         router.push(`/auth/login?next=/${encodeURIComponent(slug)}`)
         return
       }
-      const start = cellDate(pick)
+      const start = effStart(pick)
       // p_console_id isn't in the generated arg types until regen → loose-cast.
       // NB: must call as supabase.rpc(...) (a MEMBER call). Pulling the method into a
       // bare variable loses `this`, so supabase reads `this.rest` on undefined and
@@ -351,6 +360,7 @@ export function BookingWidget({
             {HOURS.map((h) => {
               const free = freeAt(h)
               const past = isPast(h)
+              const nowCell = isNowCell(h)
               const disabled = past || free === 0
               const picked = pick === h
               return (
@@ -358,7 +368,7 @@ export function BookingWidget({
                   key={h}
                   disabled={disabled}
                   onClick={() => setPick(h)}
-                  title={`${h}:00 — ${free} თავისუფალი`}
+                  title={nowCell ? `ახლავე — ${free} თავისუფალი` : `${h}:00 — ${free} თავისუფალი`}
                   className={`flex h-12 flex-1 flex-col items-center justify-center rounded-md text-xs transition-colors ${
                     picked
                       ? 'bg-[var(--primary)] text-[var(--primary-foreground)] ring-2 ring-[var(--primary)]'
@@ -366,10 +376,12 @@ export function BookingWidget({
                         ? 'bg-[var(--surface)] opacity-30'
                         : free === 0
                           ? 'bg-[var(--status-busy)]/60'
-                          : 'bg-[var(--status-free)]/20 hover:bg-[var(--status-free)]/40'
+                          : nowCell
+                            ? 'bg-[var(--primary)]/15 ring-1 ring-[var(--primary)] hover:bg-[var(--primary)]/30'
+                            : 'bg-[var(--status-free)]/20 hover:bg-[var(--status-free)]/40'
                   }`}
                 >
-                  <span className="font-bold leading-none">{past ? '·' : free}</span>
+                  <span className="font-bold leading-none">{past ? '·' : nowCell ? '⚡' : free}</span>
                 </button>
               )
             })}
@@ -382,8 +394,14 @@ export function BookingWidget({
             ))}
           </div>
           <p className="mt-3 text-xs text-[var(--muted-foreground)]">
-            ციფრი = თავისუფალი {typeLabel(selType)}-ის რაოდენობა იმ საათში. აირჩიე დაწყების დრო.
+            ციფრი = თავისუფალი {typeLabel(selType)}-ის რაოდენობა იმ საათში.
+            {HOURS.some((h) => isNowCell(h) && freeAt(h) > 0) ? ' ⚡ = ახლავე დაჯავშნა.' : ''} აირჩიე დაწყების დრო.
           </p>
+          {selDate === 0 && HOURS.every((h) => isPast(h) || freeAt(h) === 0) && (
+            <p className="mt-2 rounded-lg bg-[var(--surface)] px-3 py-2 text-xs text-[var(--muted-foreground)]">
+              🌙 დღეს ონლაინ საათები ამოიწურა ან დაკავებულია — აირჩიე ხვალინდელი დღე ზემოთ.
+            </p>
+          )}
         </div>
       )}
 
@@ -399,7 +417,7 @@ export function BookingWidget({
         <div className="mt-4 nm-inset space-y-4 rounded-2xl p-4 animate-in-up">
           <div className="flex items-center justify-between">
             <div className="font-semibold">
-              {typeLabel(selType)} · {toISODate(dates[selDate])} · {pick}:00 ·{' '}
+              {typeLabel(selType)} · {toISODate(dates[selDate])} · {isNowCell(pick) ? '⚡ ახლავე' : `${pick}:00`} ·{' '}
               <span className="text-[var(--status-free)]">{freeAt(pick)} თავისუფალი</span>
             </div>
             <button onClick={() => setPick(null)} className="text-sm text-[var(--muted-foreground)]">
