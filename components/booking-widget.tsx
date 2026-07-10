@@ -74,10 +74,28 @@ export function BookingWidget({
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
   const [authed, setAuthed] = useState(false)
-  const [pay, setPay] = useState<'transfer' | 'cash_on_arrival'>('transfer')
+  const [pay, setPay] = useState<'transfer' | 'cash_on_arrival' | 'card'>('transfer')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [done, setDone] = useState(false)
+  // online card pay (bank-pay edge fn): whether THIS venue can take it (owner has
+  // TBC/BOG creds, or org test mode) — hides/shows the „ბარათით" option.
+  const [cardPay, setCardPay] = useState<{ available: boolean; mock: boolean } | null>(null)
+  const [payNote, setPayNote] = useState<string | null>(null)
+
+  useEffect(() => {
+    let alive = true
+    const supabase = createClient()
+    supabase.functions
+      .invoke('bank-pay', { body: { action: 'provider_status', slug } })
+      .then(({ data }) => {
+        if (!alive) return
+        const d = data as { card_available?: boolean; mock?: boolean } | null
+        setCardPay({ available: !!d?.card_available, mock: !!d?.mock })
+      })
+      .catch(() => { if (alive) setCardPay({ available: false, mock: false }) })
+    return () => { alive = false }
+  }, [slug])
 
   const loadAvailability = useCallback(async () => {
     setLoading(true)
@@ -203,7 +221,7 @@ export function BookingWidget({
       // throws "Cannot read properties of undefined (reading 'rest')".
       const rpcBook = (fn: string, args: Record<string, unknown>) =>
         (supabase as unknown as {
-          rpc: (f: string, a: Record<string, unknown>) => Promise<{ error: { message: string } | null }>
+          rpc: (f: string, a: Record<string, unknown>) => Promise<{ data: string | null; error: { message: string } | null }>
         }).rpc(fn, args)
       // Guard against a request that never settles (expired-token refresh / network
       // stall) so the button can't freeze on "..." forever.
@@ -227,7 +245,7 @@ export function BookingWidget({
         setError('ქსელი ნელია — ჯავშნა ვერ დასრულდა. შეამოწმე კავშირი და სცადე თავიდან.')
         return
       }
-      const { error } = res
+      const { data: bookingId, error } = res
       if (error) {
         const m = error.message || ''
         // expired / missing session → the booking ran as anon. Re-authenticate.
@@ -247,6 +265,24 @@ export function BookingWidget({
         )
         loadAvailability()
         return
+      }
+      // Online card payment: the booking exists (unpaid) — start the bank flow via
+      // the bank-pay edge fn. Mock (test-mode org) settles instantly; a real
+      // provider returns the bank's redirect URL and we leave the page.
+      if (pay === 'card' && bookingId) {
+        const { data: payRes } = await supabase.functions
+          .invoke('bank-pay', { body: { action: 'create_booking_payment', booking_id: bookingId } })
+          .catch(() => ({ data: null }))
+        const pr = payRes as { ok?: boolean; mock?: boolean; paid?: boolean; redirect_url?: string } | null
+        if (pr?.redirect_url) {
+          window.location.assign(pr.redirect_url)
+          return // navigating to the bank — keep the button in its loading state
+        }
+        if (pr?.ok && pr.mock && pr.paid) {
+          setPayNote('💳 გადახდილია — ჯავშანი დადასტურდა ✅ (ტესტ-რეჟიმი)')
+        } else {
+          setPayNote('⚠️ ბარათით გადახდა ვერ დაიწყო — ჯავშანი შენახულია, გადაიხდი ადგილზე.')
+        }
       }
       setDone(true)
       setPick(null)
@@ -353,7 +389,7 @@ export function BookingWidget({
 
       {done && (
         <div className="mt-4 nm-inset rounded-xl p-4 text-center text-sm text-[var(--status-free)]">
-          ✅ ჯავშნა მიღებულია! კლუბი დაგიკავშირდება დასადასტურებლად. იხილე{' '}
+          {payNote ?? '✅ ჯავშნა მიღებულია! კლუბი დაგიკავშირდება დასადასტურებლად.'} იხილე{' '}
           <a href="/account" className="underline">ჩემი ჯავშნები</a>.
         </div>
       )}
@@ -454,7 +490,13 @@ export function BookingWidget({
             <div className="flex gap-2">
               <button onClick={() => setPay('transfer')} className={`rounded-lg px-3 py-1.5 text-sm ${pay === 'transfer' ? 'nm-glow' : 'nm-btn'}`}>გადარიცხვა</button>
               <button onClick={() => setPay('cash_on_arrival')} className={`rounded-lg px-3 py-1.5 text-sm ${pay === 'cash_on_arrival' ? 'nm-glow' : 'nm-btn'}`}>ადგილზე</button>
-              <button disabled title="მალე" className="nm-btn cursor-not-allowed rounded-lg px-3 py-1.5 text-sm opacity-40">ბარათით (მალე)</button>
+              {cardPay?.available ? (
+                <button onClick={() => setPay('card')} className={`rounded-lg px-3 py-1.5 text-sm ${pay === 'card' ? 'nm-glow' : 'nm-btn'}`}>
+                  💳 ბარათით{cardPay.mock ? ' · ტესტ' : ''}
+                </button>
+              ) : (
+                <button disabled title="მალე" className="nm-btn cursor-not-allowed rounded-lg px-3 py-1.5 text-sm opacity-40">ბარათით (მალე)</button>
+              )}
             </div>
           </div>
 
