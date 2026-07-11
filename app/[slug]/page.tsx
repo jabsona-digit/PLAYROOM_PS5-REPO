@@ -111,133 +111,128 @@ export default async function VenuePage({
         </div>
       </ScrollReveal>
 
-      <div className="mt-6 flex flex-col lg:flex-row gap-8 items-start">
-        {/* Left Column */}
-        <div className="flex-1 min-w-0">
-          <ScrollReveal disabled>
-            {/* Header */}
-            <div className="flex flex-wrap items-start justify-between gap-4">
-              <div>
-                <h1 className="text-3xl font-extrabold text-glow">{venue.name}</h1>
-                <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-[var(--muted-foreground)]">
-                  {(venue.city || venue.address) && (
-                    <span className="flex items-center gap-1.5">
-                      <MapPin className="size-4" />
-                      {[venue.city, venue.address].filter(Boolean).join(', ')}
-                    </span>
-                  )}
-                  {venue.public_phone && (
-                    <a
-                      href={`tel:${venue.public_phone}`}
-                      className="flex items-center gap-1.5 hover:text-[var(--primary)] transition-colors"
-                    >
-                      <Phone className="size-4" />
-                      {venue.public_phone}
-                    </a>
-                  )}
-                  {Number(venue.avg_rating) > 0 && (
-                    <span className="flex items-center gap-1.5">
-                      <Star className="size-4 fill-[var(--primary)] text-[var(--primary)]" />
-                      <span className="font-semibold text-[var(--foreground)]">
-                        {Number(venue.avg_rating).toFixed(1)}
-                      </span>
-                      ({venue.review_count})
-                    </span>
-                  )}
-                </div>
-              </div>
-              {venue.price_from != null && (
-                <div className="nm-raised-sm rounded-2xl px-5 py-3 text-right">
-                  <div className="text-xs text-[var(--muted-foreground)]">დან</div>
-                  <div className="text-xl font-bold text-[var(--primary)]">
-                    {gel(venue.price_from)}
-                    <span className="text-sm font-normal text-[var(--muted-foreground)]">
-                      {' '}
-                      / სთ
-                    </span>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {venue.description && (
-              <p className="mt-6 text-[var(--muted-foreground)] leading-relaxed">
-                {venue.description}
-              </p>
-            )}
-
-            {amenities.length > 0 && (
-              <div className="mt-6 flex flex-wrap gap-2">
-                {amenities.map((a) => (
-                  <span
-                    key={a}
-                    className="nm-inset rounded-full px-4 py-2 text-sm flex items-center gap-2 hover:neon-border transition-colors cursor-default"
-                  >
-                    <Check className="size-3.5 text-[var(--primary)]" />
-                    {a}
+      <div className="mt-10 flex flex-col gap-12">
+        {/* Venue Header (Full Width) */}
+        <ScrollReveal disabled>
+          <div className="flex flex-col md:flex-row items-start justify-between gap-6">
+            <div className="flex-1 min-w-0">
+              <h1 className="text-4xl font-black text-glow tracking-tight">{venue.name}</h1>
+              <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-[var(--muted-foreground)] font-medium">
+                {(venue.city || venue.address) && (
+                  <span className="flex items-center gap-1.5">
+                    <MapPin className="size-4" />
+                    {[venue.city, venue.address].filter(Boolean).join(', ')}
                   </span>
-                ))}
+                )}
+                {venue.public_phone && (
+                  <a
+                    href={`tel:${venue.public_phone}`}
+                    className="flex items-center gap-1.5 hover:text-[var(--primary)] transition-colors"
+                  >
+                    <Phone className="size-4" />
+                    {venue.public_phone}
+                  </a>
+                )}
+                {Number(venue.avg_rating) > 0 && (
+                  <span className="flex items-center gap-1.5">
+                    <Star className="size-4 fill-[var(--primary)] text-[var(--primary)]" />
+                    <span className="font-bold text-[var(--foreground)]">
+                      {Number(venue.avg_rating).toFixed(1)}
+                    </span>
+                    ({venue.review_count})
+                  </span>
+                )}
               </div>
-            )}
-          </ScrollReveal>
-
-          {/* Reviews */}
-          <ScrollReveal delayMs={100}>
-            <section className="mt-12">
-              <h2 className="text-xl font-bold mb-4">შეფასებები</h2>
-              {reviews.length === 0 ? (
-                <div className="nm-inset rounded-2xl p-6 text-center text-sm text-[var(--muted-foreground)]">
-                  ჯერ შეფასება არ არის.
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {reviews.map((r, i) => (
-                    <ScrollReveal key={r.id} delayMs={i * 50}>
-                      <div className="nm-raised-sm rounded-2xl p-5 hover:-translate-y-0.5 transition-transform">
-                        <div className="flex items-center justify-between">
-                          <span className="font-semibold">{r.author}</span>
-                          <span className="flex items-center gap-0.5 text-[var(--primary)]">
-                            {Array.from({ length: r.rating ?? 0 }).map((_, i) => (
-                              <Star key={i} className="size-3.5 fill-current" />
-                            ))}
-                          </span>
-                        </div>
-                        {r.comment && <p className="mt-2 text-sm text-[var(--muted-foreground)] leading-relaxed">{r.comment}</p>}
-                        {r.reply && (
-                          <div className="mt-3 ml-3 pl-3 border-l-2 border-[var(--primary)]/40 text-sm text-[var(--muted-foreground)] bg-[var(--surface-2)] p-2 rounded-lg">
-                            <span className="font-medium text-[var(--foreground)] block mb-0.5">
-                              პასუხი:{' '}
-                            </span>
-                            {r.reply}
-                          </div>
-                        )}
-                      </div>
-                    </ScrollReveal>
+              {venue.description && (
+                <p className="mt-5 max-w-3xl text-[var(--muted-foreground)] leading-relaxed text-sm sm:text-base">
+                  {venue.description}
+                </p>
+              )}
+              {amenities.length > 0 && (
+                <div className="mt-5 flex flex-wrap gap-2">
+                  {amenities.map((a) => (
+                    <span
+                      key={a}
+                      className="nm-inset rounded-full px-4 py-2 text-xs font-semibold flex items-center gap-1.5 hover:neon-border transition-colors cursor-default"
+                    >
+                      <Check className="size-3.5 text-[var(--primary)]" />
+                      {a}
+                    </span>
                   ))}
                 </div>
               )}
-            </section>
-          </ScrollReveal>
-        </div>
-
-        {/* Right Column: Responsive Booking Section */}
-        <div className="w-full lg:w-[380px] shrink-0 lg:sticky lg:top-24 lg:z-20">
-          <ScrollReveal disabled>
-            <div className="lg:nm-raised lg:rounded-3xl lg:p-6 mt-10 lg:mt-0">
-              <h2 className="flex items-center gap-2 text-xl font-bold mb-4 text-glow">
-                 <span className="flex size-2"><span className="absolute inline-flex size-2 animate-ping rounded-full bg-[var(--primary)] opacity-70" /><span className="relative inline-flex size-2 rounded-full bg-[var(--primary)]" /></span>
-                 დაჯავშნა
-              </h2>
-              
-              <BookingWidget slug={decoded} plans={plans} />
-              
-              <p className="hidden lg:block mt-4 text-xs text-[var(--muted-foreground)] text-center">
-                აირჩიე თარიღი და თავისუფალი დრო, შეავსე ჯავშნის დეტალები.
-              </p>
             </div>
-          </ScrollReveal>
-        </div>
+            
+            {venue.price_from != null && (
+              <div className="nm-raised rounded-3xl px-8 py-5 text-right shrink-0 min-w-[200px]">
+                <div className="text-xs text-[var(--muted-foreground)] font-bold uppercase tracking-widest mb-1">ფასი იწყება</div>
+                <div className="text-3xl font-black text-[var(--primary)]">
+                  {gel(venue.price_from)}
+                  <span className="text-sm font-medium text-[var(--muted-foreground)] opacity-60">
+                    {' '}
+                    / სთ
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
+        </ScrollReveal>
 
+        {/* Booking Section (Full Width, immersive) */}
+        <ScrollReveal disabled>
+          <section className="relative">
+             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4">
+               <h2 className="flex items-center gap-3 text-2xl font-black tracking-tight text-glow">
+                  <span className="flex size-2.5"><span className="absolute inline-flex size-2.5 animate-ping rounded-full bg-[var(--primary)] opacity-70" /><span className="relative inline-flex size-2.5 rounded-full bg-[var(--primary)]" /></span>
+                  ონლაინ დაჯავშნა
+               </h2>
+               <span className="text-sm font-medium text-[var(--muted-foreground)] hidden sm:block">აირჩიე თარიღი და თავისუფალი დრო</span>
+             </div>
+             
+             {/* The widget internally will spread out in this full-width container */}
+             <div className="max-w-4xl mx-auto w-full">
+               <BookingWidget slug={decoded} plans={plans} />
+             </div>
+          </section>
+        </ScrollReveal>
+
+        {/* Reviews Section */}
+        <ScrollReveal delayMs={100}>
+          <section>
+            <h2 className="text-2xl font-black mb-6">შეფასებები</h2>
+            {reviews.length === 0 ? (
+              <div className="nm-inset rounded-3xl p-8 text-center text-[var(--muted-foreground)]">
+                ჯერ შეფასება არ არის.
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                {reviews.map((r, i) => (
+                  <ScrollReveal key={r.id} delayMs={i * 50}>
+                    <div className="nm-raised-sm rounded-3xl p-6 h-full flex flex-col hover:-translate-y-1 transition-transform duration-300 block">
+                      <div className="flex items-center justify-between mb-3">
+                        <span className="font-bold text-lg">{r.author}</span>
+                        <span className="flex items-center gap-0.5 text-[var(--primary)]">
+                          {Array.from({ length: r.rating ?? 0 }).map((_, i) => (
+                            <Star key={i} className="size-4 fill-current" />
+                          ))}
+                        </span>
+                      </div>
+                      {r.comment && <p className="text-sm text-[var(--muted-foreground)] leading-relaxed flex-1">{r.comment}</p>}
+                      {r.reply && (
+                        <div className="mt-4 ml-4 pl-4 border-l-2 border-[var(--primary)]/40 text-sm text-[var(--muted-foreground)] bg-[var(--surface-2)] p-3 rounded-xl">
+                          <span className="font-bold text-[var(--foreground)] block mb-1 text-xs uppercase tracking-wider">
+                            კლუბის პასუხი
+                          </span>
+                          {r.reply}
+                        </div>
+                      )}
+                    </div>
+                  </ScrollReveal>
+                ))}
+              </div>
+            )}
+          </section>
+        </ScrollReveal>
       </div>
     </div>
   )

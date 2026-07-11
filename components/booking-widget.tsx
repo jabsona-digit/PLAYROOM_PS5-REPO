@@ -444,140 +444,151 @@ export function BookingWidget({
              </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {/* Duration Section */}
-            <div>
-              <div className="mb-2 text-[10px] font-bold text-[var(--muted-foreground)] uppercase tracking-wider">ხანგრძლივობა</div>
-              <div className="flex flex-wrap gap-2">
-                {DURATIONS.map((d) => (
-                  <button
-                    key={d}
-                    onClick={() => setDuration(d)}
-                    className={`rounded-xl px-3 py-2 text-xs font-semibold transition-all duration-200 active:scale-95 ${duration === d ? 'nm-glow text-[var(--primary-foreground)]' : 'nm-inset hover:bg-[var(--surface-2)] text-[var(--foreground)]'}`}
-                  >
-                    {d % 60 === 0 ? `${d / 60} სთ` : `${Math.floor(d / 60)}:${d % 60}`}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Consoles Section (Dropdown) */}
-            {freeConsoles.length > 1 && (
-              <div>
-                <div className="mb-2 text-[10px] font-bold text-[var(--muted-foreground)] uppercase tracking-wider">
-                  აირჩიე {isBilliard(selType) ? 'მაგიდა' : 'კონსოლი'}
+          {/* Wide screens: two real columns (left = what/how long, right = who/how-pay+submit)
+              instead of one long stacked column — the whole point of moving to a full-width
+              container. Below lg it collapses back to a single stacked flow. */}
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1.1fr_1fr] lg:items-start">
+            {/* LEFT column: duration, console, tariff */}
+            <div className="space-y-5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Duration Section */}
+                <div>
+                  <div className="mb-2 text-[10px] font-bold text-[var(--muted-foreground)] uppercase tracking-wider">ხანგრძლივობა</div>
+                  <div className="flex flex-wrap gap-2">
+                    {DURATIONS.map((d) => (
+                      <button
+                        key={d}
+                        onClick={() => setDuration(d)}
+                        className={`rounded-xl px-3 py-2 text-xs font-semibold transition-all duration-200 active:scale-95 ${duration === d ? 'nm-glow text-[var(--primary-foreground)]' : 'nm-inset hover:bg-[var(--surface-2)] text-[var(--foreground)]'}`}
+                      >
+                        {d % 60 === 0 ? `${d / 60} სთ` : `${Math.floor(d / 60)}:${d % 60}`}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-                <div className="relative group">
-                   <select 
-                     className="w-full nm-inset rounded-xl px-4 py-2.5 text-sm outline-none appearance-none font-medium cursor-pointer transition-colors focus:ring-1 focus:ring-[var(--primary)] hover:bg-[var(--surface-2)]"
-                     onChange={(e) => setPickedConsole(e.target.value === 'any' ? null : Number(e.target.value))}
-                     value={pickedConsole === null ? 'any' : pickedConsole.toString()}
-                   >
-                     <option value="any">✨ ნებისმიერი ({freeConsoles.length} თავისუფალი)</option>
-                     {freeConsoles.map(c => <option key={c.console_id} value={c.console_id.toString()}>{c.name}</option>)}
-                   </select>
-                   <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none opacity-50 group-hover:opacity-100 transition-opacity">
-                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
-                   </div>
+
+                {/* Consoles Section (Dropdown) */}
+                {freeConsoles.length > 1 && (
+                  <div>
+                    <div className="mb-2 text-[10px] font-bold text-[var(--muted-foreground)] uppercase tracking-wider">
+                      აირჩიე {isBilliard(selType) ? 'მაგიდა' : 'კონსოლი'}
+                    </div>
+                    <div className="relative group">
+                       <select
+                         className="w-full nm-inset rounded-xl px-4 py-2.5 text-sm outline-none appearance-none font-medium cursor-pointer transition-colors focus:ring-1 focus:ring-[var(--primary)] hover:bg-[var(--surface-2)]"
+                         onChange={(e) => setPickedConsole(e.target.value === 'any' ? null : Number(e.target.value))}
+                         value={pickedConsole === null ? 'any' : pickedConsole.toString()}
+                       >
+                         <option value="any">✨ ნებისმიერი ({freeConsoles.length} თავისუფალი)</option>
+                         {freeConsoles.map(c => <option key={c.console_id} value={c.console_id.toString()}>{c.name}</option>)}
+                       </select>
+                       <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none opacity-50 group-hover:opacity-100 transition-opacity">
+                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                       </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Tariffs (Bento-style list) */}
+              {shownPlans.length > 0 && (
+                <div>
+                  <div className="mb-2 text-[10px] font-bold text-[var(--muted-foreground)] uppercase tracking-wider">ტარიფი</div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    {shownPlans.map((p) => (
+                      <button
+                        key={p.plan_id}
+                        onClick={() => setPlanId(p.plan_id)}
+                        className={`rounded-2xl px-4 py-3 text-left transition-all duration-200 active:scale-[0.98] flex justify-between items-center ${planId === p.plan_id ? 'nm-glow ring-1 ring-[var(--primary)]' : 'nm-inset hover:bg-[var(--surface-2)] shadow-inner'}`}
+                      >
+                        <div>
+                          <div className="font-bold text-sm tracking-tight">{p.name}</div>
+                          <div className="text-[10px] mt-0.5 opacity-60 font-medium">
+                            {isBilliard(selType) ? 'ბილიარდის ტარიფი' : `${p.controllers} ჯოისტიკი`}
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="font-black text-[var(--primary)] text-sm">{gel(p.price_per_hour)}<span className="text-[10px] font-medium opacity-60">/სთ</span></div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            )}
-          </div>
-
-           {/* Tariffs (Bento-style list) */}
-          {shownPlans.length > 0 && (
-            <div className="pt-1">
-              <div className="mb-2 text-[10px] font-bold text-[var(--muted-foreground)] uppercase tracking-wider">ტარიფი</div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                {shownPlans.map((p) => (
-                  <button
-                    key={p.plan_id}
-                    onClick={() => setPlanId(p.plan_id)}
-                    className={`rounded-2xl px-4 py-3 text-left transition-all duration-200 active:scale-[0.98] flex justify-between items-center ${planId === p.plan_id ? 'nm-glow ring-1 ring-[var(--primary)]' : 'nm-inset hover:bg-[var(--surface-2)] shadow-inner'}`}
-                  >
-                    <div>
-                      <div className="font-bold text-sm tracking-tight">{p.name}</div>
-                      <div className="text-[10px] mt-0.5 opacity-60 font-medium">
-                        {isBilliard(selType) ? 'ბილიარდის ტარიფი' : `${p.controllers} ჯოისტიკი`}
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div className="font-black text-[var(--primary)] text-sm">{gel(p.price_per_hour)}<span className="text-[10px] font-medium opacity-60">/სთ</span></div>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Details (Name/phone) */}
-          <div className="pt-2">
-             <div className="mb-2 text-[10px] font-bold text-[var(--muted-foreground)] uppercase tracking-wider">საკონტაქტო ინფო</div>
-             <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-[1fr_1.2fr]">
-               <input value={name} onChange={(e) => setName(e.target.value)} placeholder="სახელი და გვარი" className="nm-inset w-full rounded-2xl px-4 py-3 text-sm font-medium outline-none transition-all placeholder:text-[var(--muted-foreground)]/50 focus:bg-[var(--surface)] focus:ring-1 focus:ring-[var(--primary)]/30" />
-               <div className="relative">
-                 <input
-                   value={phone}
-                   onChange={(e) => setPhone(e.target.value.replace(/[^\d+\s]/g, ''))}
-                   placeholder="ტელეფონი (5XX XX XX XX)"
-                   type="tel"
-                   inputMode="tel"
-                   maxLength={16}
-                   className={`nm-inset w-full rounded-2xl px-4 py-3 text-sm font-medium outline-none transition-all placeholder:text-[var(--muted-foreground)]/50 focus:bg-[var(--surface)] ${phone.trim() && !phoneValid ? 'ring-1 ring-[var(--status-busy)]' : 'focus:ring-1 focus:ring-[var(--primary)]/30'}`}
-                 />
-                 {phone.trim() && !phoneValid && (
-                   <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-[var(--status-busy)] uppercase tracking-wider bg-[var(--surface)] px-1 rounded">მცდარია</span>
-                 )}
-               </div>
-             </div>
-          </div>
-
-          {/* Payment */}
-          <div className="pt-1 border-t border-[var(--border)] mt-2">
-            <div className="mb-2 text-[10px] font-bold text-[var(--muted-foreground)] uppercase tracking-wider pt-2">გადახდის მეთოდი</div>
-            <div className="flex flex-wrap gap-2.5">
-              {[
-                { id: 'transfer', label: 'გადარიცხვა' },
-                { id: 'cash_on_arrival', label: 'ადგილზე' },
-              ].map((m) => (
-                <button 
-                  key={m.id} 
-                  onClick={() => setPay(m.id as 'transfer' | 'cash_on_arrival' | 'card')} 
-                  className={`rounded-xl px-4 py-2.5 text-xs font-bold transition-all duration-200 active:scale-[0.97] ${pay === m.id ? 'nm-glow text-[var(--primary)]' : 'nm-inset hover:bg-[var(--surface-2)] shadow-inner'}`}
-                >
-                  {m.label}
-                </button>
-              ))}
-              {cardPay?.available ? (
-                <button 
-                  onClick={() => setPay('card')} 
-                  className={`rounded-xl px-4 py-2.5 text-xs font-bold transition-all duration-200 active:scale-[0.97] ${pay === 'card' ? 'nm-glow text-[var(--primary)]' : 'nm-inset hover:bg-[var(--surface-2)] shadow-inner'}`}
-                >
-                  💳 ბარათით{cardPay.mock ? ' (ტესტ)' : ''}
-                </button>
-              ) : (
-                <button disabled title="მალე" className="nm-inset cursor-not-allowed rounded-xl px-4 py-2.5 text-xs font-bold opacity-30 shadow-inner">💳 ბარათით (მალე)</button>
               )}
             </div>
-          </div>
 
-          {/* Submit Action Bar */}
-          <div className="pt-6 mt-2 flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div className="text-center sm:text-left">
-              <div className="text-[10px] text-[var(--muted-foreground)] uppercase tracking-widest font-bold mb-0.5">სულ გადასახდელი</div>
-              <div className="text-3xl font-black text-glow text-[var(--primary)] tabular-nums">{gel(total)}</div>
+            {/* RIGHT column: contact info, payment, total + submit — a self-contained
+                inset card so it reads as "the checkout" against the left picker column */}
+            <div className="nm-inset rounded-2xl p-5 space-y-5 lg:sticky lg:top-6">
+              <div>
+                <div className="mb-2 text-[10px] font-bold text-[var(--muted-foreground)] uppercase tracking-wider">საკონტაქტო ინფო</div>
+                <div className="grid grid-cols-1 gap-2.5">
+                  <input value={name} onChange={(e) => setName(e.target.value)} placeholder="სახელი და გვარი" className="nm-raised-sm w-full rounded-2xl px-4 py-3 text-sm font-medium outline-none transition-all placeholder:text-[var(--muted-foreground)]/50 focus:ring-1 focus:ring-[var(--primary)]/30" />
+                  <div className="relative">
+                    <input
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value.replace(/[^\d+\s]/g, ''))}
+                      placeholder="ტელეფონი (5XX XX XX XX)"
+                      type="tel"
+                      inputMode="tel"
+                      maxLength={16}
+                      className={`nm-raised-sm w-full rounded-2xl px-4 py-3 text-sm font-medium outline-none transition-all placeholder:text-[var(--muted-foreground)]/50 ${phone.trim() && !phoneValid ? 'ring-1 ring-[var(--status-busy)]' : 'focus:ring-1 focus:ring-[var(--primary)]/30'}`}
+                    />
+                    {phone.trim() && !phoneValid && (
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-[var(--status-busy)] uppercase tracking-wider bg-[var(--surface)] px-1 rounded">მცდარია</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Payment */}
+              <div className="pt-1 border-t border-[var(--border)]">
+                <div className="mb-2 text-[10px] font-bold text-[var(--muted-foreground)] uppercase tracking-wider pt-2">გადახდის მეთოდი</div>
+                <div className="flex flex-wrap gap-2.5">
+                  {[
+                    { id: 'transfer', label: 'გადარიცხვა' },
+                    { id: 'cash_on_arrival', label: 'ადგილზე' },
+                  ].map((m) => (
+                    <button
+                      key={m.id}
+                      onClick={() => setPay(m.id as 'transfer' | 'cash_on_arrival' | 'card')}
+                      className={`rounded-xl px-4 py-2.5 text-xs font-bold transition-all duration-200 active:scale-[0.97] ${pay === m.id ? 'nm-glow text-[var(--primary)]' : 'nm-raised-sm hover:bg-[var(--surface-2)]'}`}
+                    >
+                      {m.label}
+                    </button>
+                  ))}
+                  {cardPay?.available ? (
+                    <button
+                      onClick={() => setPay('card')}
+                      className={`rounded-xl px-4 py-2.5 text-xs font-bold transition-all duration-200 active:scale-[0.97] ${pay === 'card' ? 'nm-glow text-[var(--primary)]' : 'nm-raised-sm hover:bg-[var(--surface-2)]'}`}
+                    >
+                      💳 ბარათით{cardPay.mock ? ' (ტესტ)' : ''}
+                    </button>
+                  ) : (
+                    <button disabled title="მალე" className="nm-inset cursor-not-allowed rounded-xl px-4 py-2.5 text-xs font-bold opacity-30 shadow-inner">💳 ბარათით (მალე)</button>
+                  )}
+                </div>
+              </div>
+
+              {/* Submit Action Bar */}
+              <div className="pt-4 border-t border-[var(--border)] flex flex-col items-stretch gap-3">
+                <div className="flex items-center justify-between">
+                  <div className="text-[10px] text-[var(--muted-foreground)] uppercase tracking-widest font-bold">სულ გადასახდელი</div>
+                  <div className="text-2xl font-black text-glow text-[var(--primary)] tabular-nums">{gel(total)}</div>
+                </div>
+                <button
+                  onClick={submit}
+                  disabled={submitting || (authed && (!name.trim() || !phoneValid))}
+                  className="nm-glow neon-border flex items-center justify-center gap-2 rounded-2xl w-full px-8 py-4 font-black transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-wide text-sm group"
+                >
+                  {submitting ? 'მუშავდება...' : authed ? 'დავადასტუროთ ჯავშანი' : 'შესვლა და დაჯავშნა'}
+                  {!submitting && <span className="transition-transform group-hover:translate-x-1 inline-block">→</span>}
+                </button>
+              </div>
+
+              {error && <div className="rounded-xl bg-[var(--status-busy)]/10 px-4 py-3 text-center text-sm font-semibold text-[var(--status-busy)] animate-in-up">{error}</div>}
             </div>
-            <button
-              onClick={submit}
-              disabled={submitting || (authed && (!name.trim() || !phoneValid))}
-              className="nm-glow neon-border flex items-center justify-center gap-2 rounded-2xl w-full sm:w-auto px-8 py-4 font-black transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-wide text-sm group"
-            >
-              {submitting ? 'მუშავდება...' : authed ? 'დავადასტუროთ ჯავშანი' : 'შესვლა და დაჯავშნა'}
-              {!submitting && <span className="transition-transform group-hover:translate-x-1 inline-block">→</span>}
-            </button>
           </div>
-
-          {error && <div className="rounded-xl bg-[var(--status-busy)]/10 px-4 py-3 text-center text-sm font-semibold text-[var(--status-busy)] animate-in-up">{error}</div>}
         </div>
       )}
     </div>
