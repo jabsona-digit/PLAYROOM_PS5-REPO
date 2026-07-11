@@ -311,173 +311,198 @@ export function BookingWidget({
     }
   }
 
+  const isStep2 = pick != null && !done;
+
   return (
-    <div className="nm-raised rounded-2xl p-4 sm:p-5">
-      {/* Resource-type selector (only if the venue has more than one type) */}
-      {types.length > 1 && (
-        <div className="mb-3 flex flex-wrap gap-2">
-          {types.map((t) => (
-            <button
-              key={t.console_type}
-              onClick={() => {
-                setSelType(t.console_type)
-                setPick(null)
-              }}
-              className={`rounded-xl px-4 py-2 text-sm font-semibold ${selType === t.console_type ? 'nm-glow' : 'nm-btn'}`}
-            >
-              {typeLabel(t.console_type)}{' '}
-              <span className="text-xs text-[var(--muted-foreground)]">×{t.capacity}</span>
-            </button>
-          ))}
-        </div>
-      )}
+    <div className="nm-raised rounded-3xl p-5 sm:p-6 relative overflow-hidden transition-[height] duration-300">
+      {/* STEP 1: Select Type, Date, Time (Timeline) */}
+      {!isStep2 && !done && (
+        <div className="animate-in-up">
+          {/* Resource-type selector (only if the venue has more than one type) */}
+          {types.length > 1 && (
+            <div className="mb-4 flex flex-wrap gap-2">
+              {types.map((t) => (
+                <button
+                  key={t.console_type}
+                  onClick={() => {
+                    setSelType(t.console_type)
+                    setPick(null)
+                  }}
+                  className={`rounded-xl px-4 py-2.5 text-sm font-semibold transition-transform duration-200 active:scale-[0.97] ${selType === t.console_type ? 'nm-glow' : 'nm-btn'}`}
+                >
+                  {typeLabel(t.console_type)}{' '}
+                  <span className="text-xs text-[var(--muted-foreground)] opacity-80">×{t.capacity}</span>
+                </button>
+              ))}
+            </div>
+          )}
 
-      {/* Date selector */}
-      <div className="flex gap-2 overflow-x-auto pb-2">
-        {dates.map((d, i) => {
-          const { dow, day } = dayLabel(d)
-          return (
-            <button
-              key={i}
-              onClick={() => setSelDate(i)}
-              className={`shrink-0 rounded-xl px-3.5 py-2 text-center transition ${i === selDate ? 'nm-glow' : 'nm-btn'}`}
-            >
-              <div className="text-xs text-[var(--muted-foreground)]">{dow}</div>
-              <div className="font-semibold">{day}</div>
-            </button>
-          )
-        })}
-      </div>
-
-      {/* Free-slot timeline */}
-      {loading ? (
-        <div className="py-10 text-center text-sm text-[var(--muted-foreground)]">იტვირთება…</div>
-      ) : capacity === 0 ? (
-        <div className="py-10 text-center text-sm text-[var(--muted-foreground)]">{isBilliard(selType) ? 'მაგიდები' : 'კონსოლები'} არ მოიძებნა.</div>
-      ) : (
-        <div className="mt-4">
-          <div className="flex gap-1">
-            {HOURS.map((h) => {
-              const free = freeAt(h)
-              const past = isPast(h)
-              const nowCell = isNowCell(h)
-              const disabled = past || free === 0
-              const picked = pick === h
+          {/* Date selector */}
+          <div className="flex gap-2.5 overflow-x-auto pb-4 no-scrollbar">
+            {dates.map((d, i) => {
+              const { dow, day } = dayLabel(d)
               return (
                 <button
-                  key={h}
-                  disabled={disabled}
-                  onClick={() => setPick(h)}
-                  title={nowCell ? `ახლავე — ${free} თავისუფალი` : `${h}:00 — ${free} თავისუფალი`}
-                  className={`flex h-12 flex-1 flex-col items-center justify-center rounded-md text-xs transition-colors ${
-                    picked
-                      ? 'bg-[var(--primary)] text-[var(--primary-foreground)] ring-2 ring-[var(--primary)]'
-                      : past
-                        ? 'bg-[var(--surface)] opacity-30'
-                        : free === 0
-                          ? 'bg-[var(--status-busy)]/60'
-                          : nowCell
-                            ? 'bg-[var(--primary)]/15 ring-1 ring-[var(--primary)] hover:bg-[var(--primary)]/30'
-                            : 'bg-[var(--status-free)]/20 hover:bg-[var(--status-free)]/40'
-                  }`}
+                  key={i}
+                  onClick={() => setSelDate(i)}
+                  className={`shrink-0 rounded-2xl px-4 py-2.5 text-center transition-all duration-200 active:scale-[0.97] ${i === selDate ? 'nm-glow border-[var(--primary)]/30' : 'nm-btn'}`}
                 >
-                  <span className="font-bold leading-none">{past ? '·' : nowCell ? '⚡' : free}</span>
+                  <div className={`text-[10px] font-medium uppercase tracking-widest ${i === selDate ? 'text-[var(--primary)]' : 'text-[var(--muted-foreground)]'}`}>{dow}</div>
+                  <div className="font-bold text-lg mt-0.5">{day}</div>
                 </button>
               )
             })}
           </div>
-          <div className="mt-1 flex gap-1 text-[9px] text-[var(--muted-foreground)]">
-            {HOURS.map((h) => (
-              <div key={h} className="flex-1 text-center">
-                {h % 2 === 0 ? h : ''}
+
+          {/* Free-slot timeline */}
+          {loading ? (
+            <div className="py-12 text-center text-sm font-medium animate-pulse text-[var(--muted-foreground)]">მონაცემები იტვირთება...</div>
+          ) : capacity === 0 ? (
+            <div className="py-12 text-center text-sm font-medium text-[var(--muted-foreground)]">{isBilliard(selType) ? 'მაგიდები' : 'კონსოლები'} არ მოიძებნა.</div>
+          ) : (
+            <div className="mt-2">
+              <div className="flex gap-1">
+                {HOURS.map((h) => {
+                  const free = freeAt(h)
+                  const past = isPast(h)
+                  const nowCell = isNowCell(h)
+                  const disabled = past || free === 0
+                  return (
+                    <button
+                      key={h}
+                      disabled={disabled}
+                      onClick={() => setPick(h)}
+                      title={nowCell ? `ახლავე — ${free} თავისუფალი` : `${h}:00 — ${free} თავისუფალი`}
+                      className={`flex h-14 flex-1 flex-col items-center justify-center rounded-xl text-xs transition-all duration-200 active:scale-[0.85] ${
+                        past
+                          ? 'bg-[var(--surface)] opacity-30 shadow-inner'
+                          : free === 0
+                            ? 'bg-[var(--status-busy)]/80 text-white shadow-inner'
+                            : nowCell
+                              ? 'bg-[var(--primary)]/20 ring-1 ring-[var(--primary)] text-[var(--primary)] hover:bg-[var(--primary)]/30'
+                              : 'bg-[var(--status-free)]/20 hover:bg-[var(--status-free)]/40 hover:scale-[1.05]'
+                      }`}
+                    >
+                      <span className="font-black text-sm">{past ? '·' : nowCell ? '⚡' : free}</span>
+                    </button>
+                  )
+                })}
               </div>
-            ))}
-          </div>
-          <p className="mt-3 text-xs text-[var(--muted-foreground)]">
-            ციფრი = თავისუფალი {typeLabel(selType)}-ის რაოდენობა იმ საათში.
-            {HOURS.some((h) => isNowCell(h) && freeAt(h) > 0) ? ' ⚡ = ახლავე დაჯავშნა.' : ''} აირჩიე დაწყების დრო.
-          </p>
-          {selDate === 0 && HOURS.every((h) => isPast(h) || freeAt(h) === 0) && (
-            <p className="mt-2 rounded-lg bg-[var(--surface)] px-3 py-2 text-xs text-[var(--muted-foreground)]">
-              🌙 დღეს ონლაინ საათები ამოიწურა ან დაკავებულია — აირჩიე ხვალინდელი დღე ზემოთ.
-            </p>
+              <div className="mt-1.5 flex gap-1 text-[10px] font-medium text-[var(--muted-foreground)]">
+                {HOURS.map((h) => (
+                  <div key={h} className="flex-1 text-center">
+                    {h % 2 === 0 ? h : ''}
+                  </div>
+                ))}
+              </div>
+              <div className="mt-4 flex items-center justify-between text-xs text-[var(--muted-foreground)]">
+                <p>ციფრი = თავისუფალი {typeLabel(selType)}-ის რაოდენობა.</p>
+                {HOURS.some((h) => isNowCell(h) && freeAt(h) > 0) && <p className="text-[var(--primary)]">⚡ = გელოდებათ ახლავე.</p>}
+              </div>
+              {selDate === 0 && HOURS.every((h) => isPast(h) || freeAt(h) === 0) && (
+                <p className="mt-3 rounded-xl bg-[var(--surface)] px-4 py-2.5 text-xs text-center text-[var(--muted-foreground)] shadow-inner">
+                  🌙 ონლაინ საათები ამოიწურა ან დაკავებულია. გთხოვთ აირჩიოთ ხვალინდელი დღე.
+                </p>
+              )}
+            </div>
           )}
         </div>
       )}
 
+      {/* DONE STATE */}
       {done && (
-        <div className="mt-4 nm-inset rounded-xl p-4 text-center text-sm text-[var(--status-free)]">
-          {payNote ?? '✅ ჯავშნა მიღებულია! კლუბი დაგიკავშირდება დასადასტურებლად.'} იხილე{' '}
-          <a href="/account" className="underline">ჩემი ჯავშნები</a>.
+        <div className="animate-in-up text-center py-8 relative">
+           {/* Success glow behind */}
+           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 bg-[var(--status-free)] rounded-full blur-[60px] opacity-20 pointer-events-none"></div>
+           
+           <div className="inline-flex items-center justify-center size-16 rounded-full bg-[var(--status-free)]/20 text-[var(--status-free)] mb-4 ring-1 ring-[var(--status-free)]/50">
+             <span className="text-3xl relative top-px block animate-bounce" style={{ animationIterationCount: 2 }}>✓</span>
+           </div>
+           <p className="font-black text-2xl mb-2 text-glow">ჯავშანი მიღებულია!</p>
+           <p className="text-sm text-[var(--muted-foreground)] px-4 mx-auto max-w-xs">
+             {payNote ?? 'კლუბის ადმინისტრაცია დაგიკავშირდებათ დასადასტურებლად წუთ-წუთზე.'}
+           </p>
+           <div className="mt-8 flex gap-3 justify-center">
+             <button onClick={() => { setDone(false); loadAvailability(); }} className="nm-btn rounded-xl px-5 py-2.5 text-sm font-semibold transition-transform hover:-translate-y-0.5 active:scale-95">ახალი ჯავშანი</button>
+             <a href="/account" className="nm-glow neon-border rounded-xl px-5 py-2.5 text-sm font-semibold transition-transform hover:-translate-y-0.5 active:scale-95">ჩემი ჯავშნები</a>
+           </div>
         </div>
       )}
 
-      {/* Booking form */}
-      {pick != null && !done && (
-        <div className="mt-4 nm-inset space-y-4 rounded-2xl p-4 animate-in-up">
-          <div className="flex items-center justify-between">
-            <div className="font-semibold">
-              {typeLabel(selType)} · {toISODate(dates[selDate])} · {isNowCell(pick) ? '⚡ ახლავე' : `${pick}:00`} ·{' '}
-              <span className="text-[var(--status-free)]">{freeAt(pick)} თავისუფალი</span>
-            </div>
-            <button onClick={() => setPick(null)} className="text-sm text-[var(--muted-foreground)]">
-              გაუქმება
-            </button>
+      {/* STEP 2: Booking Details Form (Progressive Disclosure) */}
+      {isStep2 && (
+        <div className="space-y-5 animate-in-up">
+          
+          {/* Header & Back Button */}
+          <div className="flex items-center justify-between pb-3 border-b border-[var(--border)]">
+             <button title="უკან" onClick={() => setPick(null)} className="flex items-center gap-1.5 font-medium text-[var(--muted-foreground)] hover:text-[var(--primary)] transition-colors text-sm pr-4 py-1 group">
+               <span className="transition-transform group-hover:-translate-x-1">←</span> უკან დაბრუნება
+             </button>
+             <div className="text-right leading-tight">
+               <span className="block font-black text-lg text-[var(--primary)]">{pick !== null && isNowCell(pick) ? '⚡ ახლავე' : `${pick}:00`}</span>
+               <span className="text-[10px] uppercase tracking-wider text-[var(--muted-foreground)]">{toISODate(dates[selDate])} · {typeLabel(selType)}</span>
+             </div>
           </div>
 
-          <div>
-            <div className="mb-1.5 text-sm text-[var(--muted-foreground)]">ხანგრძლივობა</div>
-            <div className="flex flex-wrap gap-2">
-              {DURATIONS.map((d) => (
-                <button
-                  key={d}
-                  onClick={() => setDuration(d)}
-                  className={`rounded-lg px-3 py-1.5 text-sm ${duration === d ? 'nm-glow' : 'nm-btn'}`}
-                >
-                  {d % 60 === 0 ? `${d / 60} სთ` : `${Math.floor(d / 60)}:${d % 60}`}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {freeConsoles.length > 1 && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* Duration Section */}
             <div>
-              <div className="mb-1.5 text-sm text-[var(--muted-foreground)]">
-                კონკრეტული {isBilliard(selType) ? 'მაგიდა' : 'კონსოლი'} <span className="opacity-60">(არასავალდებულო)</span>
-              </div>
+              <div className="mb-2 text-[10px] font-bold text-[var(--muted-foreground)] uppercase tracking-wider">ხანგრძლივობა</div>
               <div className="flex flex-wrap gap-2">
-                <button
-                  onClick={() => setPickedConsole(null)}
-                  className={`rounded-lg px-3 py-1.5 text-sm ${pickedConsole == null ? 'nm-glow' : 'nm-btn'}`}
-                >
-                  ✨ ნებისმიერი
-                </button>
-                {freeConsoles.map((c) => (
+                {DURATIONS.map((d) => (
                   <button
-                    key={c.console_id}
-                    onClick={() => setPickedConsole(c.console_id)}
-                    className={`rounded-lg px-3 py-1.5 text-sm ${pickedConsole === c.console_id ? 'nm-glow' : 'nm-btn'}`}
+                    key={d}
+                    onClick={() => setDuration(d)}
+                    className={`rounded-xl px-3 py-2 text-xs font-semibold transition-all duration-200 active:scale-95 ${duration === d ? 'nm-glow text-[var(--primary-foreground)]' : 'nm-inset hover:bg-[var(--surface-2)] text-[var(--foreground)]'}`}
                   >
-                    {c.name}
+                    {d % 60 === 0 ? `${d / 60} სთ` : `${Math.floor(d / 60)}:${d % 60}`}
                   </button>
                 ))}
               </div>
             </div>
-          )}
 
+            {/* Consoles Section (Dropdown) */}
+            {freeConsoles.length > 1 && (
+              <div>
+                <div className="mb-2 text-[10px] font-bold text-[var(--muted-foreground)] uppercase tracking-wider">
+                  აირჩიე {isBilliard(selType) ? 'მაგიდა' : 'კონსოლი'}
+                </div>
+                <div className="relative group">
+                   <select 
+                     className="w-full nm-inset rounded-xl px-4 py-2.5 text-sm outline-none appearance-none font-medium cursor-pointer transition-colors focus:ring-1 focus:ring-[var(--primary)] hover:bg-[var(--surface-2)]"
+                     onChange={(e) => setPickedConsole(e.target.value === 'any' ? null : Number(e.target.value))}
+                     value={pickedConsole === null ? 'any' : pickedConsole.toString()}
+                   >
+                     <option value="any">✨ ნებისმიერი ({freeConsoles.length} თავისუფალი)</option>
+                     {freeConsoles.map(c => <option key={c.console_id} value={c.console_id.toString()}>{c.name}</option>)}
+                   </select>
+                   <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none opacity-50 group-hover:opacity-100 transition-opacity">
+                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                   </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+           {/* Tariffs (Bento-style list) */}
           {shownPlans.length > 0 && (
-            <div>
-              <div className="mb-1.5 text-sm text-[var(--muted-foreground)]">ტარიფი</div>
-              <div className="flex flex-wrap gap-2">
+            <div className="pt-1">
+              <div className="mb-2 text-[10px] font-bold text-[var(--muted-foreground)] uppercase tracking-wider">ტარიფი</div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                 {shownPlans.map((p) => (
                   <button
                     key={p.plan_id}
                     onClick={() => setPlanId(p.plan_id)}
-                    className={`rounded-lg px-3 py-1.5 text-left text-sm ${planId === p.plan_id ? 'nm-glow' : 'nm-btn'}`}
+                    className={`rounded-2xl px-4 py-3 text-left transition-all duration-200 active:scale-[0.98] flex justify-between items-center ${planId === p.plan_id ? 'nm-glow ring-1 ring-[var(--primary)]' : 'nm-inset hover:bg-[var(--surface-2)] shadow-inner'}`}
                   >
-                    <div className="font-medium">{p.name}</div>
-                    <div className="text-xs text-[var(--muted-foreground)]">
-                      {gel(p.price_per_hour)}/სთ{isBilliard(selType) ? '' : ` · ${p.controllers} ჯოისტიკი`}
+                    <div>
+                      <div className="font-bold text-sm tracking-tight">{p.name}</div>
+                      <div className="text-[10px] mt-0.5 opacity-60 font-medium">
+                        {isBilliard(selType) ? 'ბილიარდის ტარიფი' : `${p.controllers} ჯოისტიკი`}
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="font-black text-[var(--primary)] text-sm">{gel(p.price_per_hour)}<span className="text-[10px] font-medium opacity-60">/სთ</span></div>
                     </div>
                   </button>
                 ))}
@@ -485,56 +510,77 @@ export function BookingWidget({
             </div>
           )}
 
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="სახელი და გვარი" className="nm-raised-sm rounded-xl px-3 py-2 text-sm outline-none" />
-            <div>
-              <input
-                value={phone}
-                onChange={(e) => setPhone(e.target.value.replace(/[^\d+\s]/g, ''))}
-                placeholder="ტელეფონი (5XX XX XX XX)"
-                type="tel"
-                inputMode="tel"
-                maxLength={16}
-                className={`nm-raised-sm w-full rounded-xl px-3 py-2 text-sm outline-none ${phone.trim() && !phoneValid ? 'ring-1 ring-[var(--status-busy)]' : ''}`}
-              />
-              {phone.trim() && !phoneValid && (
-                <p className="mt-1 text-xs text-[var(--status-busy)]">შეიყვანე სრული მობილური ნომერი</p>
-              )}
-            </div>
+          {/* Details (Name/phone) */}
+          <div className="pt-2">
+             <div className="mb-2 text-[10px] font-bold text-[var(--muted-foreground)] uppercase tracking-wider">საკონტაქტო ინფო</div>
+             <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-[1fr_1.2fr]">
+               <input value={name} onChange={(e) => setName(e.target.value)} placeholder="სახელი და გვარი" className="nm-inset w-full rounded-2xl px-4 py-3 text-sm font-medium outline-none transition-all placeholder:text-[var(--muted-foreground)]/50 focus:bg-[var(--surface)] focus:ring-1 focus:ring-[var(--primary)]/30" />
+               <div className="relative">
+                 <input
+                   value={phone}
+                   onChange={(e) => setPhone(e.target.value.replace(/[^\d+\s]/g, ''))}
+                   placeholder="ტელეფონი (5XX XX XX XX)"
+                   type="tel"
+                   inputMode="tel"
+                   maxLength={16}
+                   className={`nm-inset w-full rounded-2xl px-4 py-3 text-sm font-medium outline-none transition-all placeholder:text-[var(--muted-foreground)]/50 focus:bg-[var(--surface)] ${phone.trim() && !phoneValid ? 'ring-1 ring-[var(--status-busy)]' : 'focus:ring-1 focus:ring-[var(--primary)]/30'}`}
+                 />
+                 {phone.trim() && !phoneValid && (
+                   <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-[var(--status-busy)] uppercase tracking-wider bg-[var(--surface)] px-1 rounded">მცდარია</span>
+                 )}
+               </div>
+             </div>
           </div>
 
-          <div>
-            <div className="mb-1.5 text-sm text-[var(--muted-foreground)]">გადახდა</div>
-            <div className="flex gap-2">
-              <button onClick={() => setPay('transfer')} className={`rounded-lg px-3 py-1.5 text-sm ${pay === 'transfer' ? 'nm-glow' : 'nm-btn'}`}>გადარიცხვა</button>
-              <button onClick={() => setPay('cash_on_arrival')} className={`rounded-lg px-3 py-1.5 text-sm ${pay === 'cash_on_arrival' ? 'nm-glow' : 'nm-btn'}`}>ადგილზე</button>
+          {/* Payment */}
+          <div className="pt-1 border-t border-[var(--border)] mt-2">
+            <div className="mb-2 text-[10px] font-bold text-[var(--muted-foreground)] uppercase tracking-wider pt-2">გადახდის მეთოდი</div>
+            <div className="flex flex-wrap gap-2.5">
+              {[
+                { id: 'transfer', label: 'გადარიცხვა' },
+                { id: 'cash_on_arrival', label: 'ადგილზე' },
+              ].map((m) => (
+                <button 
+                  key={m.id} 
+                  onClick={() => setPay(m.id as 'transfer' | 'cash_on_arrival' | 'card')} 
+                  className={`rounded-xl px-4 py-2.5 text-xs font-bold transition-all duration-200 active:scale-[0.97] ${pay === m.id ? 'nm-glow text-[var(--primary)]' : 'nm-inset hover:bg-[var(--surface-2)] shadow-inner'}`}
+                >
+                  {m.label}
+                </button>
+              ))}
               {cardPay?.available ? (
-                <button onClick={() => setPay('card')} className={`rounded-lg px-3 py-1.5 text-sm ${pay === 'card' ? 'nm-glow' : 'nm-btn'}`}>
-                  💳 ბარათით{cardPay.mock ? ' · ტესტ' : ''}
+                <button 
+                  onClick={() => setPay('card')} 
+                  className={`rounded-xl px-4 py-2.5 text-xs font-bold transition-all duration-200 active:scale-[0.97] ${pay === 'card' ? 'nm-glow text-[var(--primary)]' : 'nm-inset hover:bg-[var(--surface-2)] shadow-inner'}`}
+                >
+                  💳 ბარათით{cardPay.mock ? ' (ტესტ)' : ''}
                 </button>
               ) : (
-                <button disabled title="მალე" className="nm-btn cursor-not-allowed rounded-lg px-3 py-1.5 text-sm opacity-40">ბარათით (მალე)</button>
+                <button disabled title="მალე" className="nm-inset cursor-not-allowed rounded-xl px-4 py-2.5 text-xs font-bold opacity-30 shadow-inner">💳 ბარათით (მალე)</button>
               )}
             </div>
           </div>
 
-          <div className="flex items-center justify-between pt-1">
-            <div className="text-sm">
-              <span className="text-[var(--muted-foreground)]">ჯამი: </span>
-              <span className="text-lg font-bold text-[var(--primary)]">{gel(total)}</span>
+          {/* Submit Action Bar */}
+          <div className="pt-6 mt-2 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="text-center sm:text-left">
+              <div className="text-[10px] text-[var(--muted-foreground)] uppercase tracking-widest font-bold mb-0.5">სულ გადასახდელი</div>
+              <div className="text-3xl font-black text-glow text-[var(--primary)] tabular-nums">{gel(total)}</div>
             </div>
             <button
               onClick={submit}
               disabled={submitting || (authed && (!name.trim() || !phoneValid))}
-              className="nm-glow rounded-xl px-6 py-2.5 font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+              className="nm-glow neon-border flex items-center justify-center gap-2 rounded-2xl w-full sm:w-auto px-8 py-4 font-black transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-wide text-sm group"
             >
-              {submitting ? '...' : authed ? 'დაჯავშნა' : 'შესვლა და დაჯავშნა'}
+              {submitting ? 'მუშავდება...' : authed ? 'დავადასტუროთ ჯავშანი' : 'შესვლა და დაჯავშნა'}
+              {!submitting && <span className="transition-transform group-hover:translate-x-1 inline-block">→</span>}
             </button>
           </div>
 
-          {error && <p className="text-center text-sm text-[var(--status-busy)]">{error}</p>}
+          {error && <div className="rounded-xl bg-[var(--status-busy)]/10 px-4 py-3 text-center text-sm font-semibold text-[var(--status-busy)] animate-in-up">{error}</div>}
         </div>
       )}
     </div>
   )
 }
+
