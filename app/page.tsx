@@ -32,18 +32,23 @@ export default async function Home() {
     <div className="mx-auto max-w-6xl px-4">
       {/* 1. Hero - Disabled ScrollReveal avoids LCP hydration flash */}
       <ScrollReveal disabled>
-        <section className="py-14 text-center sm:py-20">
-          <h1 className="text-4xl font-extrabold tracking-tight sm:text-6xl">
-            იპოვე შენი შემდეგი <span className="text-[var(--primary)] text-glow">ბრძოლა</span> 🎮
+        <section className="relative py-14 text-center sm:py-20 overflow-visible">
+          {/* static ambient glow — PS-teal + violet gaming depth (never animated) */}
+          <div className="glow-orb" style={{ top: '-12%', left: '6%', width: 420, height: 420, background: 'color-mix(in oklch, var(--primary) 12%, transparent)' }} />
+          <div className="glow-orb" style={{ top: '18%', right: '2%', width: 360, height: 360, background: 'color-mix(in oklch, var(--violet) 10%, transparent)' }} />
+
+          <h1 className="relative text-4xl font-extrabold tracking-tight sm:text-6xl">
+            <span className="text-gradient-hero">იპოვე შენი შემდეგი</span>{' '}
+            <span className="text-[var(--primary)] text-glow">ბრძოლა</span> 🎮
           </h1>
-          <p className="mx-auto mt-5 max-w-2xl text-lg text-[var(--muted-foreground)]">
+          <p className="relative mx-auto mt-5 max-w-2xl text-lg text-[var(--muted-foreground)]">
             საქართველოს საუკეთესო PlayStation ლაუნჯები, FC25 ტურნირები და გეიმერების საზოგადოება — ერთ ადგილას. იპოვე.
             დაჯავშნე. იბრძოლე.
           </p>
 
           {/* search → /venues?q= */}
-          <form action="/venues" method="get" className="mx-auto mt-8 flex max-w-xl items-center gap-2">
-            <div className="nm-inset flex flex-1 items-center gap-2 rounded-2xl px-4 py-3">
+          <form action="/venues" method="get" className="relative mx-auto mt-8 flex max-w-xl items-center gap-2">
+            <div className="nm-inset flex flex-1 items-center gap-2 rounded-2xl px-4 py-3 transition-shadow duration-200 focus-within:shadow-[inset_4px_4px_9px_var(--nm-dark),inset_-4px_-4px_9px_var(--nm-light),0_0_0_1px_color-mix(in_oklch,var(--primary)_45%,transparent),0_0_20px_color-mix(in_oklch,var(--primary)_18%,transparent)]">
               <Search className="size-4 shrink-0 text-[var(--muted-foreground)]" />
               <input
                 type="search"
@@ -52,46 +57,47 @@ export default async function Home() {
                 className="w-full bg-transparent text-sm outline-none placeholder:text-[var(--muted-foreground)]"
               />
             </div>
-            <button type="submit" className="nm-glow hover:neon-border rounded-2xl px-6 py-3 text-sm font-bold group transition-all duration-300">
-              <span className="relative z-10 transition-transform group-hover:scale-105 inline-block">ძებნა</span>
+            <button type="submit" className="btn-press nm-glow rounded-2xl px-6 py-3 text-sm font-bold">
+              ძებნა
             </button>
           </form>
 
-          <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
-            <Link href="/venues" className="nm-btn rounded-xl px-5 py-2.5 text-sm font-semibold">
+          <div className="relative mt-5 flex flex-wrap items-center justify-center gap-3">
+            <Link href="/venues" className="btn-press nm-btn rounded-xl px-5 py-2.5 text-sm font-semibold">
               იპოვე კლუბი
             </Link>
-            <Link href="/tournaments" className="nm-btn rounded-xl px-5 py-2.5 text-sm font-semibold text-[var(--primary)]">
+            <Link href="/tournaments" className="btn-press nm-btn rounded-xl px-5 py-2.5 text-sm font-semibold text-[var(--primary)]">
               ნახე ტურნირები →
             </Link>
           </div>
 
-          <p className="mt-6 text-xs text-[var(--muted-foreground)]">
+          <p className="relative mt-6 text-xs text-[var(--muted-foreground)]">
             🟢 ცოცხალი ხელმისაწვდომობა · 🎮 აქტიური კლუბები · 🏆 მიმდინარე ტურნირები
           </p>
         </section>
       </ScrollReveal>
 
-      {/* 2. Tournaments */}
+      {/* 2. Tournaments — violet is the tournament world's color */}
       <ScrollReveal delayMs={100}>
         <section className="pb-12">
-          <div className="nm-raised rounded-3xl p-7 sm:p-10">
-            <div className="flex flex-col items-center gap-3 text-center">
-              <Trophy className="size-9 text-[var(--primary)] text-glow" />
+          <div className="nm-raised relative overflow-hidden rounded-3xl p-7 sm:p-10">
+            <div className="glow-orb" style={{ top: '-30%', right: '10%', width: 380, height: 380, background: 'color-mix(in oklch, var(--violet) 12%, transparent)' }} />
+            <div className="relative flex flex-col items-center gap-3 text-center">
+              <Trophy className="size-9 text-[var(--violet)] text-glow-violet" />
               <h2 className="text-2xl font-bold sm:text-3xl">შემოდი ბრძოლაში. 🏆</h2>
               <p className="max-w-2xl text-[var(--muted-foreground)]">
                 FC25, Mortal Kombat და სხვა — მსოფლიო ჩემპიონატის ფორმატით. დარეგისტრირდი ონლაინ, მიიღე QR ბილეთი,
                 მოხვდი ჯგუფში და იბრძოლე პრიზისთვის.
               </p>
-              <Link href="/tournaments" className="nm-glow neon-border rounded-xl px-6 py-3 mt-3 text-sm font-bold transition-transform hover:-translate-y-1">
+              <Link href="/tournaments" className="btn-press nm-glow neon-border-violet rounded-xl px-6 py-3 mt-3 text-sm font-bold">
                 ნახე აქტიური ტურნირები
               </Link>
             </div>
 
             {liveTours.length > 0 && (
-              <div className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="relative mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
                 {liveTours.map((t, i) => (
-                  <ScrollReveal key={t.id} delayMs={i * 150}>
+                  <ScrollReveal key={t.id} delayMs={i * 80}>
                     <TournamentCard t={t} />
                   </ScrollReveal>
                 ))}
@@ -118,7 +124,7 @@ export default async function Home() {
                   <span className="nm-inset rounded-full px-3 py-1.5 hover:text-[var(--primary)] transition-colors">🏅 ბეჯები</span>
                   <span className="nm-inset rounded-full px-3 py-1.5 hover:text-[var(--primary)] transition-colors">⬆️ XP & დონე</span>
                 </div>
-                <Link href="/account" className="nm-glow neon-border mt-6 inline-block rounded-xl px-6 py-3 text-sm font-bold transition-transform hover:-translate-y-1">
+                <Link href="/account" className="btn-press nm-glow neon-border mt-6 inline-block rounded-xl px-6 py-3 text-sm font-bold">
                   ნახე შენი პასპორტი
                 </Link>
               </div>
@@ -146,7 +152,7 @@ export default async function Home() {
           ) : (
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
               {list.map((v, i) => (
-                <ScrollReveal key={v.id} delayMs={i * 100}>
+                <ScrollReveal key={v.id} delayMs={i * 70}>
                   <VenueCard venue={v} />
                 </ScrollReveal>
               ))}
@@ -165,7 +171,7 @@ export default async function Home() {
               { icon: Calendar, n: '2', t: 'დაჯავშნე', d: 'აირჩიე კონსოლი და დრო, დაადასტურე წამებში.' },
               { icon: Gamepad2, n: '3', t: 'ითამაშე', d: 'მიდი კლუბში, აჩვენე QR და დაიწყე თამაში.' },
             ].map(({ icon: Icon, n, t, d }, i) => (
-              <ScrollReveal key={n} delayMs={i * 150} className="nm-raised-sm rounded-2xl p-6 transition-transform hover:-translate-y-1">
+              <ScrollReveal key={n} delayMs={i * 80} className="nm-raised-sm hover-ring rounded-2xl p-6">
                 <div className="flex items-center gap-3">
                   <span className="nm-inset flex size-9 items-center justify-center rounded-full text-sm font-extrabold text-[var(--primary)]">
                     {n}
@@ -196,12 +202,12 @@ export default async function Home() {
               გეიმერები უკვე თამაშობენ Martelounge-ით. შენი ჯერია.
             </p>
             <div className="mt-6 flex flex-wrap items-center justify-center gap-3 relative z-10">
-              <Link href="/venues" className="nm-glow neon-border hover:neon-ping transition-transform rounded-xl px-6 py-3 text-sm font-bold group">
-                <span className="relative z-10 group-hover:scale-105 inline-block transition-transform">იპოვე კლუბი</span>
+              <Link href="/venues" className="btn-press nm-glow neon-border rounded-xl px-6 py-3 text-sm font-bold">
+                იპოვე კლუბი
               </Link>
               <Link
                 href="/tournaments"
-                className="nm-btn flex items-center gap-1.5 rounded-xl px-6 py-3 text-sm font-bold text-[var(--primary)] transition-transform hover:-translate-y-1"
+                className="btn-press nm-btn flex items-center gap-1.5 rounded-xl px-6 py-3 text-sm font-bold text-[var(--primary)]"
               >
                 ნახე ტურნირები <ArrowRight className="size-4" />
               </Link>

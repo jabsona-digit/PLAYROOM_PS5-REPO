@@ -142,7 +142,7 @@
 }
 
 @utility is-revealed {
-  animation: float-reveal 0.65s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation: float-reveal 0.55s cubic-bezier(0.23, 1, 0.32, 1) forwards;
 }
 
 @utility is-revealed-fade {
@@ -198,8 +198,68 @@
   }
 }
 
+/* =========================================================================
+   PREMIUM 2026 CRAFT LAYER — strong easings, static ambient glow, press
+   feedback, violet tournament identity. Additive on top of the neumorphic
+   system (cohesion first — no restyle of the base).
+   ========================================================================= */
+:root {
+  --ease-out-strong: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out-strong: cubic-bezier(0.77, 0, 0.175, 1);
+  --violet: oklch(0.62 0.2 295);
+}
+
+/* Every pressable element must feel like it heard you. */
+@utility btn-press {
+  transition: transform 160ms var(--ease-out-strong);
+  &:active {
+    transform: scale(0.97);
+  }
+}
+
+/* Static ambient glow orb — position/size/color inline. NEVER animated
+   (infinite blur animations overheated real machines on a sibling project). */
+@utility glow-orb {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(110px);
+  pointer-events: none;
+}
+
+/* Quiet metallic gradient for hero headlines. */
+@utility text-gradient-hero {
+  background: linear-gradient(180deg, #ffffff 30%, rgba(255, 255, 255, 0.6));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Luminous hover ring — box-shadow only (no border = no layout shift). */
+@utility hover-ring {
+  transition: box-shadow 200ms var(--ease-out-strong), transform 200ms var(--ease-out-strong);
+  @media (hover: hover) and (pointer: fine) {
+    &:hover {
+      box-shadow:
+        6px 6px 14px var(--nm-dark),
+        -6px -6px 14px var(--nm-light),
+        0 0 0 1px color-mix(in oklch, var(--primary) 35%, transparent),
+        0 0 24px color-mix(in oklch, var(--primary) 18%, transparent);
+    }
+  }
+}
+
+/* Violet identity for the tournament world. */
+@utility neon-border-violet {
+  border: 1px solid color-mix(in oklch, var(--violet) 65%, transparent);
+  box-shadow: 0 0 10px color-mix(in oklch, var(--violet) 22%, transparent),
+              inset 0 0 10px color-mix(in oklch, var(--violet) 10%, transparent);
+}
+@utility text-glow-violet {
+  text-shadow: 0 0 16px color-mix(in oklch, var(--violet) 65%, transparent);
+}
+
 /* Utilities */
-.no-scrollbar { 
+.no-scrollbar {
   scrollbar-width: none; 
   -ms-overflow-style: none; 
 }

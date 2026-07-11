@@ -14,7 +14,7 @@ export function VenueCard({ venue }: { venue: PublicVenue }) {
   return (
     <Link
       href={`/${venue.slug}`}
-      className="nm-btn group block rounded-2xl overflow-hidden"
+      className="nm-btn hover-ring group block rounded-2xl overflow-hidden"
     >
       <div className="relative aspect-[16/10] overflow-hidden bg-[var(--surface)]">
         {venue.cover_image_url ? (
