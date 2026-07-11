@@ -258,6 +258,34 @@
   text-shadow: 0 0 16px color-mix(in oklch, var(--violet) 65%, transparent);
 }
 
+/* Scroll parallax for ambient orbs — SCROLL-DRIVEN CSS (animation-timeline:
+   scroll(root)): compositor-run, zero JS, transform-only (the static blur is
+   rasterized once; only the composited layer moves). Progressive enhancement. */
+@supports (animation-timeline: scroll()) {
+  .parallax-drift {
+    animation: parallax-drift linear both;
+    animation-timeline: scroll(root);
+  }
+  .parallax-drift-slow {
+    animation: parallax-drift-slow linear both;
+    animation-timeline: scroll(root);
+  }
+  @keyframes parallax-drift {
+    from { transform: translateY(0); }
+    to { transform: translateY(-140px); }
+  }
+  @keyframes parallax-drift-slow {
+    from { transform: translateY(0); }
+    to { transform: translateY(-70px); }
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .parallax-drift,
+  .parallax-drift-slow {
+    animation: none !important;
+  }
+}
+
 /* Utilities */
 .no-scrollbar {
   scrollbar-width: none; 

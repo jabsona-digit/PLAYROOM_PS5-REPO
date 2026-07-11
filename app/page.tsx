@@ -33,9 +33,10 @@ export default async function Home() {
       {/* 1. Hero - Disabled ScrollReveal avoids LCP hydration flash */}
       <ScrollReveal disabled>
         <section className="relative py-14 text-center sm:py-20 overflow-visible">
-          {/* static ambient glow — PS-teal + violet gaming depth (never animated) */}
-          <div className="glow-orb" style={{ top: '-12%', left: '6%', width: 420, height: 420, background: 'color-mix(in oklch, var(--primary) 12%, transparent)' }} />
-          <div className="glow-orb" style={{ top: '18%', right: '2%', width: 360, height: 360, background: 'color-mix(in oklch, var(--violet) 10%, transparent)' }} />
+          {/* ambient glow — PS-teal + violet gaming depth; drifts with scroll on the
+              compositor (parallax-drift), never time-animated */}
+          <div className="glow-orb parallax-drift" style={{ top: '-12%', left: '6%', width: 420, height: 420, background: 'color-mix(in oklch, var(--primary) 12%, transparent)' }} />
+          <div className="glow-orb parallax-drift-slow" style={{ top: '18%', right: '2%', width: 360, height: 360, background: 'color-mix(in oklch, var(--violet) 10%, transparent)' }} />
 
           <h1 className="relative text-4xl font-extrabold tracking-tight sm:text-6xl">
             <span className="text-gradient-hero">იპოვე შენი შემდეგი</span>{' '}
