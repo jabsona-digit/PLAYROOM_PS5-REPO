@@ -112,12 +112,38 @@
   text-shadow: 0 0 14px color-mix(in oklch, var(--primary) 60%, transparent);
 }
 
+/* Optical typography for large headings — tight tracking + tight leading reads
+   as one monolithic mass instead of loose individual letters. */
+@utility text-optical {
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+}
+
 @keyframes slide-in-up {
   from { opacity: 0; transform: translateY(18px); }
   to { opacity: 1; transform: translateY(0); }
 }
 @utility animate-in-up {
   animation: slide-in-up 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Server-rendered list stagger (no JS needed) — cascading ticket/booking cards.
+   Cap the delay so a long list doesn't make the tail feel slow to appear. */
+.stagger-list > * {
+  animation: slide-in-up 0.4s cubic-bezier(0.23, 1, 0.32, 1) both;
+}
+.stagger-list > *:nth-child(n+1) { animation-delay: 0ms; }
+.stagger-list > *:nth-child(n+2) { animation-delay: 50ms; }
+.stagger-list > *:nth-child(n+3) { animation-delay: 100ms; }
+.stagger-list > *:nth-child(n+4) { animation-delay: 150ms; }
+.stagger-list > *:nth-child(n+5) { animation-delay: 200ms; }
+.stagger-list > *:nth-child(n+6) { animation-delay: 250ms; }
+.stagger-list > *:nth-child(n+7) { animation-delay: 280ms; }
+.stagger-list > *:nth-child(n+8) { animation-delay: 280ms; }
+@media (prefers-reduced-motion: reduce) {
+  .stagger-list > * {
+    animation: none !important;
+  }
 }
 
 /* =========================================================================

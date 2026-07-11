@@ -113,7 +113,7 @@ export default async function AccountPage() {
           </Link>
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="stagger-list space-y-3">
           {bookings.map((b) => {
             const v = venueMap.get(b.venue_id)
             const s = STATUS[b.status] ?? { label: b.status, cls: '' }

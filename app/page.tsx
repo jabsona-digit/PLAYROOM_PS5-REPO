@@ -38,7 +38,7 @@ export default async function Home() {
           <div className="glow-orb parallax-drift" style={{ top: '-12%', left: '6%', width: 420, height: 420, background: 'color-mix(in oklch, var(--primary) 12%, transparent)' }} />
           <div className="glow-orb parallax-drift-slow" style={{ top: '18%', right: '2%', width: 360, height: 360, background: 'color-mix(in oklch, var(--violet) 10%, transparent)' }} />
 
-          <h1 className="relative text-4xl font-extrabold tracking-tight sm:text-6xl">
+          <h1 className="text-optical relative text-4xl font-extrabold sm:text-6xl">
             <span className="text-gradient-hero">იპოვე შენი შემდეგი</span>{' '}
             <span className="text-[var(--primary)] text-glow">ბრძოლა</span> 🎮
           </h1>
